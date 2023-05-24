@@ -110,7 +110,6 @@ private:
     inline void single_move(int square1, int square2)
     {
         bool capture = (abs(square1 - square2) > 9);
-        if (capture) std::cout<< "esdfa\n";
         const u64 startbit = 1ULL << square1;
         const u64 endbit = 1ULL << square2;
         int piece = -1;
@@ -121,7 +120,7 @@ private:
                 piece = 0;
             else
                 piece = 1;
-            promote = (piece == 0 && (endbit / 8 == 0));
+            promote = (piece == 0 && (square2 / 8 == 0));
         }
         else 
         {
@@ -129,12 +128,11 @@ private:
                 piece = 2;
             else
                 piece = 3;
-                
-            promote = (piece == 2 && (endbit / 8 == 7));
+            promote = (piece == 2 && (square2 / 8 == 7));
         }
-        bitboards[piece] ^= startbit;
-        if (!promote) bitboards[piece] ^= endbit;
-        else bitboards[piece+1] ^= endbit;
+        bitboards[piece] &= ~startbit;
+        if (promote) bitboards[piece+1] |= endbit;
+        else bitboards[piece] |= endbit;
 
         if (capture) 
         {
@@ -264,8 +262,14 @@ public:
         template <typename T, typename... params>
     inline void make_move(T square1, T square2, params... other_squares)
     {
+        std::cout << "move\n";
         boards.push(boards.top());
         boards.top().move(square1, square2, other_squares...);
+    }
+
+    inline Board& top()
+    {
+        return std::forward<Board&>(boards.top());
     }
 
     inline void make_move(move_wrapper& mv)
@@ -278,7 +282,22 @@ public:
     {
         boards.pop();
     }
+
+    inline void make_partial_move(move_wrapper& mv)
+    {
+        boards.push(boards.top());
+        boards.top().move(mv);
+        boards.top().flip_side();
+    }
+
+    inline void make_partial_move(move_wrapper&& mv)
+    {
+        boards.push(boards.top());
+        boards.top().move(mv);
+        boards.top().flip_side();
+    }
 };
+
 
 namespace move_generator
 {
@@ -347,7 +366,7 @@ void init_move_table()
     }
 }
 
-inline std::vector<move_wrapper> get_captures(Board& bd)
+inline std::vector<move_wrapper> get_captures(Board& bd, int square)
 {
     BoardStack move_stack(bd);
     std::vector<move_wrapper> moves;
@@ -357,10 +376,10 @@ inline std::vector<move_wrapper> get_captures(Board& bd)
     const u64 attacking_occ = bd[0 + aside] | bd[1 + aside];
     const u64 all_occ = defending_occ | attacking_occ;
 
-    u64 bb = bd[aside];
+    u64 bb = (1ULL << square) & bd[aside];
     while (bb)
     {
-        int start = LSB_index(bb);
+        int start = square;
         bb = pop_bit(bb, start);
         u64 att = capture_table[!(bd.get_side())][start];
         while (att)
@@ -368,13 +387,23 @@ inline std::vector<move_wrapper> get_captures(Board& bd)
             int end = LSB_index(att);
             att = pop_bit(att, end);
             if (((1ULL << end) & ~all_occ) && ((1ULL << ((start+end) / 2)) & defending_occ)) 
-                moves.push_back(move_wrapper(start,end));
+            {
+                move_stack.make_partial_move(move_wrapper(start,end));
+                std::vector<move_wrapper> temp = get_captures(move_stack.top(),end);
+                if (temp.size() == 0 || end / 8 == 0 || end / 8 == 7) moves.push_back(move_wrapper(start,end));
+                else for (move_wrapper mw : temp)
+                {
+                    moves.push_back(std::forward<move_wrapper>(move_wrapper(start,end)));
+                    std::for_each(mw._move.begin() + 1, mw._move.end(), [&](int i) {moves.back()._move.push_back(i);});
+                }
+                move_stack.unmake_move();
+            }
         }
     }
-    bb = bd[aside+1];
+    bb = (1ULL << square) & bd[aside+1];
     while (bb)
     {
-        int start = LSB_index(bb);
+        int start = square;
         bb = pop_bit(bb, start);
         u64 att = capture_table[2][start];
         while (att)
@@ -382,7 +411,34 @@ inline std::vector<move_wrapper> get_captures(Board& bd)
             int end = LSB_index(att);
             att = pop_bit(att, end);
             if (((1ULL << end) & ~all_occ) && ((1ULL << ((start+end) / 2)) & defending_occ)) 
-                moves.push_back(move_wrapper(start,end));
+            {
+                move_stack.make_partial_move(move_wrapper(start,end));
+                std::vector<move_wrapper> temp = get_captures(move_stack.top(),end);
+                if (temp.size() == 0) moves.push_back(move_wrapper(start,end));
+                else for (move_wrapper mw : temp)
+                {
+                    moves.push_back(std::forward<move_wrapper>(move_wrapper(start,end)));
+                    std::for_each(mw._move.begin() + 1, mw._move.end(), [&](int i) {moves.back()._move.push_back(i);});
+                }
+                move_stack.unmake_move();
+            } 
+        }
+    }
+
+    return std::forward<std::vector<move_wrapper>>(moves);
+}
+
+inline std::vector<move_wrapper> get_all_captures(Board& bd)
+{
+    
+    std::vector<move_wrapper> moves;
+    std::vector<move_wrapper> newmoves;
+    for (int i = 0; i < 64; i++)
+    {
+        newmoves = get_captures(bd, i);
+        for (move_wrapper mw: newmoves)
+        {
+            moves.push_back(std::forward<move_wrapper>(mw));
         }
     }
 
@@ -407,8 +463,8 @@ inline std::vector<move_wrapper> get_silents(Board& bd)
         while (att)
         {
             int end = LSB_index(att);
-            if (att & ~all_occ) moves.push_back(move_wrapper(start,end));
             att = pop_bit(att, end);
+            if ((1ULL << end) & ~all_occ) moves.push_back(move_wrapper(start,end));
         }
     }
     bb = bd[aside+1];
@@ -420,8 +476,8 @@ inline std::vector<move_wrapper> get_silents(Board& bd)
         while (att)
         {
             int end = LSB_index(att);
-            if (att & ~all_occ) moves.push_back(move_wrapper(start,end));
             att = pop_bit(att, end);
+            if ((1ULL << end) & ~all_occ) moves.push_back(move_wrapper(start,end));
         }
     }
     return std::forward<std::vector<move_wrapper>>(moves);
@@ -429,12 +485,184 @@ inline std::vector<move_wrapper> get_silents(Board& bd)
 
 std::vector<move_wrapper> get_legal_moves(Board& bd)
 {
-    std::vector<move_wrapper> moves = get_captures(bd);
+    std::vector<move_wrapper> moves = get_all_captures(bd);
     if (moves.size() == 0) moves = get_silents(bd);
 
     return std::forward<std::vector<move_wrapper>>(moves);
 }
 
-   
 }
+
+namespace evaluation
+{
+
+const int man_values[64] 
+{
+     0,  0,  0,  0,  0,  0,  0,  0,
+    24,  0, 10,  0,  8,  0,  9,  0,
+     0,  8,  0, 10,  0, 10,  0, 24,
+     3,  0,  4,  0,  5,  0,  1,  0,
+     0,  2,  0,  6,  0,  5,  0,  1,
+     0,  0,  0,  0,  0,  0,  0,  0,
+     0, -1,  0,  5,  0,  8,  0, 25,
+    -5,  0, 20,  0, 10,  0, 30,  0
+};
+
+const int king_values[64] 
+{
+     0, -7,  0, -1,  0, -3,  0, -5,
+    -5,  0,  0,  0, -1,  0, -1,  0,
+     0,  8,  0, 10,  0,  0,  0, -1,
+    -1,  0, 10,  0, 10,  0,  1,  0,
+     0,  2,  0, 10,  0, 10,  0, -1,
+    -1,  0,  0,  0,  10, 0,  0,  0,
+     0, -1,  0, -1,  0, -1,  0, -1,
+    -5,  0,  0,  0, -1,  0, -7,  0
+};
+
+const int piece_values[4]
+{ 100, 1000, -100, -1000};
+
+inline int flip_square(int square)
+{
+    return -square + 64;
+}
+
+inline int eval(Board& bd)
+{
+    u64 pieces[4] = {bd[0], bd[1], bd[2], bd[3]};
+    int val = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        while (pieces[i])
+        {
+            int square = LSB_index(pieces[i]);
+            pieces[i] = pop_bit(pieces[i], square);
+            val += piece_values[i];
+            if (i == 0)
+                val += man_values[square];
+            else if (i == 1)
+                val += king_values[square];
+            else if (i == 2)
+                val -= man_values[flip_square(square)];
+            else if (i == 3)
+                val -= king_values[flip_square(square)];
+        }
+    }
+    return val;
+
+}
+
+}
+
+namespace algo
+{
+
+const int infinity = 1000000;
+const int game_over = 100000;
+
+using evaluation::eval;
+using move_generator::get_legal_moves;
+
+struct move_info
+{
+    move_wrapper _mvwrpr;
+    int _node_count;
+    int _value;
+
+    inline bool operator>(const move_info& other)
+    {
+        return this->_value > other._value;
+    }
+
+    inline bool operator<(const move_info& other)
+    {
+        return this->_value < other._value;
+    }
+};
+
+class move_evaluator
+{
+private:
+    BoardStack _this_stack;
+    const int _depth{0};
+    int* _moves{nullptr};
+    const move_wrapper _mvwrpr;
+    int _value;
+
+    inline int negamax(int depth, int alpha, int beta)
+    {
+        (*_moves)++;
+        if (depth == 0)
+            return eval(_this_stack.top()) * ((_this_stack.top().get_side()) ? 1 : -1);
+        std::vector<move_wrapper> moveslist = get_legal_moves(_this_stack.top());
+        if (moveslist.size() == 0)
+            return game_over - depth;
+        int value = -infinity;
+        for (move_wrapper mw: moveslist)
+        {
+            _this_stack.make_move(mw);
+            value = std::max(value, -negamax(depth-1, beta, alpha));
+            alpha = std::max(value, alpha);
+            _this_stack.unmake_move();
+            if (alpha >= beta)
+                break;
+        }
+        
+        return value;
+    }
+
+
+public:
+    move_evaluator(Board& bd, const int depth, move_wrapper mw) : _this_stack{BoardStack(bd)}, _depth{depth}, _moves{new int{0}}, _mvwrpr{std::move(mw)}
+    {
+        _this_stack.make_move(mw);
+    }
+
+    inline move_info operator()() 
+    {
+        _value = negamax(_depth, -infinity, infinity);
+        return {std::move(_mvwrpr), *_moves, _value};
+    }
+
+    
+};
+
+inline move_info get_best_move(int depth, Board& bd)
+{
+    std::vector<move_wrapper> moveslist = get_legal_moves(bd);
+    std::vector<move_info> calculated_list;
+    int totalnodes = 0;
+    for (move_wrapper mw : moveslist)
+    {
+        move_evaluator me(bd, depth, std::move(mw));
+        calculated_list.push_back(me());
+        totalnodes += calculated_list.back()._node_count;
+    }
+    std::sort(calculated_list.begin(), calculated_list.end(), std::greater<>());
+    return {calculated_list.front()._mvwrpr, totalnodes ,calculated_list.front()._value};
+}
+
+
+/*
+    function negamax(node, depth, α, β, color) is
+        if depth = 0 or node is a terminal node then
+            return color × the heuristic value of node
+
+        childNodes := generateMoves(node)
+        childNodes := orderMoves(childNodes)
+        value := −∞
+        foreach child in childNodes do
+            value := max(value, −negamax(child, depth − 1, −β, −α, −color))
+            α := max(α, value)
+            if α ≥ β then
+                break (* cut-off *)
+        return value
+
+    (* Initial call for Player A's root node *)
+    negamax(rootNode, depth, −∞, +∞, 1)
+*/
+
+}
+
 }
