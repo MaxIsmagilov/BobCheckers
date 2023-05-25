@@ -1,5 +1,4 @@
-                BobCheckers
-=================================================
+# BobCheckers
 
 BobCheckers is a (better than a certain other) checkers engine, designed to beat that certain other checkers engine
 
