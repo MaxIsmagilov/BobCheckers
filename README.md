@@ -23,3 +23,10 @@ Requred
 a compiler capable of c++17
 Reccomended
 G++/GCC 12
+
+# Installation instructions
+
+1. download the release
+2. if makefile is installed along with GCC , run `make all`
+2. otherwise, just use your prefered compiler, linking `BobCheckersBackend.hh` and `BobCheckersAPI.hh` to `BobCheckers.cpp` 
+3. add the executable to a PCI-compliant interface
