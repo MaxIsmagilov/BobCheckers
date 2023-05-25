@@ -1,4 +1,4 @@
-#include "Board.hh"
+#include "BobCheckersBackend.hh"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -8,6 +8,7 @@
 using namespace Bob_checkers;
 using namespace Bob_checkers::move_generator;
 using namespace Bob_checkers::algo;
+using namespace std::chrono;
 
 void setup()
 {
@@ -26,11 +27,21 @@ int main()
     {
         char e;
         std::cin >> e;
-        move_info i = get_best_move(6, bd);
-        std::cout << i._mvwrpr.print_move() << " with " << i._node_count << " nodes, eval is: " << i._value << "\n";
+
+        const auto begin = high_resolution_clock::now();
+
+        move_info i = get_best_move(9, bd);
+
+        const auto end = high_resolution_clock::now();
+        const auto duration = duration_cast<milliseconds>(end - begin);
+
+        std::cout << i._mvwrpr.print_move() << " eval is: " << i._value << " @" 
+                  << ((float) i._node_count / duration.count()) << "k nodes/second\n";
+
         bd.move(i._mvwrpr);
         std::cout << bd.print_board() << "\n\n";
     }
+
     
     return 0;
 }
