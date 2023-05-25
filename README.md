@@ -1,17 +1,22 @@
-# BobCheckers
+=================================================
+                BobCheckers
+=================================================
+
 BobCheckers is a (better than a certain other) checkers engine, designed to beat that certain other checkers engine
 
 # Features
-Many:
-1: pre-calculated move tables
-2: force-capture validation
-3: make/unmake structure
 
-To be added:
-1: multiple captures
-2: search algorithm
-3: evaluation
-4: API
+## current:
+1. pre-calculated move tables
+2. force-capture validation
+3. multiple-capture forcing
+4. negamax + ab pruning
+5. make/unmake structure
+6. PCI compliant
+
+## to be added:
+1. transposition tables
+2. move ordering?
 
 # System requirements
 Requred

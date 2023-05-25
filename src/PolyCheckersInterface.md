@@ -1,11 +1,11 @@
-# POLY CHECKERS INTERFACE: a standardize communications method for checkers engines and GUIs
+# POLY CHECKERS INTERFACE: a standardized communications method for checkers engines and GUIs
 
 ----------------------------------
 
 # COMMAND GUIDELINES
 
 commands should be formatted such that they follow format
-`<command> <parameters>`
+`<command> (parameters)`
 
 ----------------------------------
 
@@ -46,6 +46,6 @@ shows that the engine is ready for input.
 ## `do move`
 
 the engine should also send a move as parameter:
-- normal move:      `move e3f4`
-- single capture:   `move f2d4`
-- multiple capture: `move f2d4f6`
+- normal move:      `do move e3f4`
+- single capture:   `do move f2d4`
+- multiple capture: `do move f2d4f6`

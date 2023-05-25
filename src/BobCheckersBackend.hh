@@ -1,3 +1,7 @@
+#ifndef BobChkrsBknd
+#define BobChkrsBknd
+
+
 #include <array>
 #include <vector>
 #include <algorithm>
@@ -8,6 +12,8 @@
 /// @brief the main checkers namespace
 namespace Bob_checkers
 {
+
+/*      board types & squares   */
 
 /// @brief define the bitboard type
 typedef unsigned long long u64;
@@ -37,6 +43,8 @@ const std::string coordinates[64] =
     "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"
 };
+
+/*      bitboard utils      */
 
 /// @brief finds whether a bit exists at an index
 /// @param board 
@@ -94,6 +102,8 @@ static inline int LSB_index(const uint64_t& test)
 {
     return (test) ? count_bits((test &  -test) - 1) : -1;
 }
+
+/*      main classes    */
 
 /// @brief contains a move via a vector of the squares to move to
 class move_wrapper
@@ -424,6 +434,8 @@ public:
     }
 };
 
+/*      drivers         */
+
 /// @brief move generation namespace
 namespace move_generator
 {
@@ -506,145 +518,236 @@ void init_move_table()
     }
 }
 
-/// @brief get captures on a square
-/// @param bd 
-/// @param square 
-/// @return a vector of move_wrappers
-inline std::vector<move_wrapper> get_captures(Board& bd, int square)
+/// @brief move generator function object
+class move_generator
 {
-    BoardStack move_stack(bd);
-    std::vector<move_wrapper> moves;
-    const int aside = (bd.get_side()) ? 0 : 2;
-    const int dside = (bd.get_side()) ? 2 : 0;
-    const u64 defending_occ = bd[0 + dside] | bd[1 + dside];
-    const u64 attacking_occ = bd[0 + aside] | bd[1 + aside];
-    const u64 all_occ = defending_occ | attacking_occ;
+private:
+    /// @brief the main boardstack
+    BoardStack _move_stack;
 
-    u64 bb = (1ULL << square) & bd[aside];
-    while (bb)
+    /// @brief the board that is being investigated
+    Board _bd;
+
+public:
+
+    /// @brief constructor for move_generator
+    /// @param bd 
+    move_generator(Board&& bd): _move_stack{bd}, _bd{bd} {}
+
+    /// @brief constructor for move_generator
+    /// @param bd 
+    move_generator(Board& bd): _move_stack{bd}, _bd{bd} {}
+
+    /// @brief get captures on a square
+    /// @param bd 
+    /// @param square 
+    /// @return a vector of move_wrappers
+    inline std::vector<move_wrapper> get_captures(int square)
     {
-        int start = square;
-        bb = pop_bit(bb, start);
-        u64 att = capture_table[!(bd.get_side())][start];
-        while (att)
+        // grab the board state 
+        Board& bd = _move_stack.top();
+
+        // init move vector
+        std::vector<move_wrapper> moves;
+
+        // init constants
+        const int aside = (bd.get_side()) ? 0 : 2;
+        const int dside = (bd.get_side()) ? 2 : 0;
+        const u64 defending_occ = bd[0 + dside] | bd[1 + dside];
+        const u64 attacking_occ = bd[0 + aside] | bd[1 + aside];
+        const u64 all_occ = defending_occ | attacking_occ;
+
+        // create man moves
+        u64 bb = (1ULL << square) & bd[aside];
+        while (bb)
         {
-            int end = LSB_index(att);
-            att = pop_bit(att, end);
-            if (((1ULL << end) & ~all_occ) && ((1ULL << ((start+end) / 2)) & defending_occ)) 
+            // lookup attack value
+            const int start = square;
+            bb = pop_bit(bb, start);
+            u64 att = capture_table[!(bd.get_side())][start];
+
+            // go through attacks and parse
+            while (att)
             {
-                move_stack.make_partial_move(move_wrapper(start,end));
-                std::vector<move_wrapper> temp = get_captures(move_stack.top(),end);
-                if (temp.size() == 0 || end / 8 == 0 || end / 8 == 7) moves.push_back(move_wrapper(start,end));
-                else for (move_wrapper mw : temp)
+                // get a possible end square
+                int end = LSB_index(att);
+                att = pop_bit(att, end);
+
+                // parse move if it captures a piece and moves to an available square
+                if (((1ULL << end) & ~all_occ) && ((1ULL << ((start+end) / 2)) & defending_occ)) 
                 {
-                    moves.push_back(std::forward<move_wrapper>(move_wrapper(start,end)));
-                    std::for_each(mw._move.begin() + 1, mw._move.end(), [&](int i) {moves.back()._move.push_back(i);});
+                    // make a partial move and recursively find next captures
+                    _move_stack.make_partial_move(move_wrapper(start,end));
+                    std::vector<move_wrapper> temp = get_captures(end);
+
+                    // if there are no future captures, continue
+                    if (temp.size() == 0 || end / 8 == 0 || end / 8 == 7) moves.push_back(move_wrapper(start,end));
+
+                    // else concatenate the future moves to the current ones
+                    else for (move_wrapper mw : temp)
+                    {
+                        moves.push_back(std::forward<move_wrapper>(move_wrapper(start,end)));
+                        std::for_each(mw._move.begin() + 1, mw._move.end(), [&](int i) {moves.back()._move.push_back(i);});
+                    }
+
+                    // unmake the stack move
+                    _move_stack.unmake_move();
                 }
-                move_stack.unmake_move();
             }
         }
-    }
-    bb = (1ULL << square) & bd[aside+1];
-    while (bb)
-    {
-        int start = square;
-        bb = pop_bit(bb, start);
-        u64 att = capture_table[2][start];
-        while (att)
+
+        // create king moves
+        bb = (1ULL << square) & bd[aside+1];
+        while (bb)
         {
-            int end = LSB_index(att);
-            att = pop_bit(att, end);
-            if (((1ULL << end) & ~all_occ) && ((1ULL << ((start+end) / 2)) & defending_occ)) 
+            // lookup attack value
+            const int start = square;
+            bb = pop_bit(bb, start);
+            u64 att = capture_table[2][start];
+            
+            // go through attacks and parse
+            while (att)
             {
-                move_stack.make_partial_move(move_wrapper(start,end));
-                std::vector<move_wrapper> temp = get_captures(move_stack.top(),end);
-                if (temp.size() == 0) moves.push_back(move_wrapper(start,end));
-                else for (move_wrapper mw : temp)
+                // get a possible end square
+                int end = LSB_index(att);
+                att = pop_bit(att, end);
+
+                // parse move if it captures a piece and moves to an available square
+                if (((1ULL << end) & ~all_occ) && ((1ULL << ((start+end) / 2)) & defending_occ)) 
                 {
-                    moves.push_back(std::forward<move_wrapper>(move_wrapper(start,end)));
-                    std::for_each(mw._move.begin() + 1, mw._move.end(), [&](int i) {moves.back()._move.push_back(i);});
-                }
-                move_stack.unmake_move();
-            } 
+                    // make a partial move and recursively find next captures
+                    _move_stack.make_partial_move(move_wrapper(start,end));
+                    std::vector<move_wrapper> temp = get_captures(end);
+
+                    // if there are no future captures, continue
+                    if (temp.size() == 0) moves.push_back(move_wrapper(start,end));
+
+                    // else concatenate the future moves to the current ones
+                    else for (move_wrapper mw : temp)
+                    {
+                        moves.push_back(std::forward<move_wrapper>(move_wrapper(start,end)));
+                        std::for_each(mw._move.begin() + 1, mw._move.end(), [&](int i) {moves.back()._move.push_back(i);});
+                    }
+
+                    // unmake the stack move
+                    _move_stack.unmake_move();
+                } 
+            }
         }
+
+        // return the resultant vector
+        return std::forward<std::vector<move_wrapper>>(moves);
     }
 
-    return std::forward<std::vector<move_wrapper>>(moves);
-}
-
-/// @brief gets all captures
-/// @param bd 
-/// @return a vector of move_wrappers
-inline std::vector<move_wrapper> get_all_captures(Board& bd)
-{
-    
-    std::vector<move_wrapper> moves;
-    std::vector<move_wrapper> newmoves;
-    for (int i = 0; i < 64; i++)
+    /// @brief gets all captures
+    /// @param bd 
+    /// @return a vector of move_wrappers
+    inline std::vector<move_wrapper> get_all_captures()
     {
-        newmoves = get_captures(bd, i);
-        for (move_wrapper mw: newmoves)
+        // create final and piece-wise move vectors
+        std::vector<move_wrapper> moves;
+        std::vector<move_wrapper> newmoves;
+
+        // go through squares and find captures
+        for (int i = 0; i < 64; i++)
         {
-            moves.push_back(std::forward<move_wrapper>(mw));
+            // get captures on that square
+            newmoves = get_captures(i);
+
+            // add all new moves to the final vector
+            for (move_wrapper mw: newmoves)
+             {  moves.push_back(std::forward<move_wrapper>(mw)); }
         }
+
+        // return the vector
+        return std::forward<std::vector<move_wrapper>>(moves);
     }
 
-    return std::forward<std::vector<move_wrapper>>(moves);
-}
-
-/// @brief gets all silent moves
-/// @param bd 
-/// @return a vector of move_wrappers
-inline std::vector<move_wrapper> get_silents(Board& bd)
-{
-    std::vector<move_wrapper> moves;
-    const int aside = (bd.get_side()) ? 0 : 2;
-    const int dside = (bd.get_side()) ? 2 : 0;
-    const u64 defending_occ = bd[0 + dside] | bd[1 + dside];
-    const u64 attacking_occ = bd[0 + aside] | bd[1 + aside];
-    const u64 all_occ = defending_occ | attacking_occ;
-
-    u64 bb = bd[aside];
-    while (bb)
+    /// @brief gets all silent moves
+    /// @param bd 
+    /// @return a vector of move_wrappers
+    inline std::vector<move_wrapper> get_silents()
     {
-        int start = LSB_index(bb);
-        bb = pop_bit(bb, start);
-        u64 att = silent_table[!(bd.get_side())][start];
-        while (att)
+        // create blank move vector
+        std::vector<move_wrapper> moves;
+
+        // create helpful constants
+        const int aside = (_bd.get_side()) ? 0 : 2;
+        const int dside = (_bd.get_side()) ? 2 : 0;
+        const u64 defending_occ = _bd[0 + dside] | _bd[1 + dside];
+        const u64 attacking_occ = _bd[0 + aside] | _bd[1 + aside];
+        const u64 all_occ = defending_occ | attacking_occ;
+
+        // check man bitboard
+        u64 bb = _bd[aside];
+        while (bb)
         {
-            int end = LSB_index(att);
-            att = pop_bit(att, end);
-            if ((1ULL << end) & ~all_occ) moves.push_back(move_wrapper(start,end));
+            // pop the least significant bit and use it
+            // to look up the move value
+            int start = LSB_index(bb);
+            bb = pop_bit(bb, start);
+            u64 att = silent_table[!(_bd.get_side())][start];
+
+            // parse the moves
+            while (att)
+            {
+                // find the end square
+                int end = LSB_index(att);
+                att = pop_bit(att, end);
+
+                // if the end square is not occupied, consider it valid
+                if ((1ULL << end) & ~all_occ) moves.push_back(move_wrapper(start,end));
+            }
         }
-    }
-    bb = bd[aside+1];
-    while (bb)
-    {
-        int start = LSB_index(bb);
-        bb = pop_bit(bb, start);
-        u64 att = silent_table[2][start];
-        while (att)
+        
+        // check king bitboard
+        bb = _bd[aside+1];
+        while (bb)
         {
-            int end = LSB_index(att);
-            att = pop_bit(att, end);
-            if ((1ULL << end) & ~all_occ) moves.push_back(move_wrapper(start,end));
+            // pop the least significant bit and use it
+            // to look up the move value
+            int start = LSB_index(bb);
+            bb = pop_bit(bb, start);
+            u64 att = silent_table[2][start];
+
+            // parse the moves
+            while (att)
+            {
+                // find the end square
+                int end = LSB_index(att);
+                att = pop_bit(att, end);
+
+                // if the end square is not occupied, consider it valid
+                if ((1ULL << end) & ~all_occ) moves.push_back(move_wrapper(start,end));
+            }
         }
+
+        // return the resultant vector
+        return std::forward<std::vector<move_wrapper>>(moves);
     }
-    return std::forward<std::vector<move_wrapper>>(moves);
-}
+
+};
 
 /// @brief gets all legal moves
 /// @param bd 
 /// @return a vector of move_wrappers
 std::vector<move_wrapper> get_legal_moves(Board& bd)
 {
-    std::vector<move_wrapper> moves = get_all_captures(bd);
-    if (moves.size() == 0) moves = get_silents(bd);
+    // create a move generator function helper initialized with the current board state
+    move_generator mg(bd);
 
+    // calculate captures
+    std::vector<move_wrapper> moves = mg.get_all_captures();
+
+    // if there are no captures, set the moves as the silent moves
+    // this ensures that if a capture is available, only captures will be considered
+    if (moves.size() == 0) moves = mg.get_silents();
+
+    // return the resultant vector
     return std::forward<std::vector<move_wrapper>>(moves);
 }
 
-}
+} // end of move generation namespace
 
 /// @brief evaluation namespace
 namespace evaluation
@@ -723,7 +826,7 @@ inline int eval(Board& bd)
     return val;
 }
 
-}
+} // end of the evaluation namespace
 
 /// @brief algorithm namespace
 namespace algo
@@ -734,9 +837,6 @@ const int infinity = 1000000;
 
 /// @brief checkmate value
 const int game_over = 100000;
-
-using evaluation::eval;
-using move_generator::get_legal_moves;
 
 /// @brief move information struct
 struct move_info
@@ -820,10 +920,10 @@ private:
 
         // return the value if depth cutoff
         if (depth == 0)
-            return eval(_this_stack.top()) * ((_this_stack.top().get_side()) ? -1 : 1);
+            return evaluation::eval(_this_stack.top()) * ((_this_stack.top().get_side()) ? -1 : 1);
 
         // create a move vector
-        std::vector<move_wrapper> moveslist = get_legal_moves(_this_stack.top());
+        std::vector<move_wrapper> moveslist = move_generator::get_legal_moves(_this_stack.top());
 
         // if there are no moves, it is game over
         if (moveslist.size() == 0)
@@ -881,7 +981,7 @@ public:
 inline move_info get_best_move(int depth, Board& bd)
 {
     // create move and final vectors
-    std::vector<move_wrapper> moveslist = get_legal_moves(bd);
+    std::vector<move_wrapper> moveslist = move_generator::get_legal_moves(bd);
     std::vector<move_info> calculated_list;
 
     // create node counter
@@ -905,6 +1005,8 @@ inline move_info get_best_move(int depth, Board& bd)
     return {calculated_list.front()._mvwrpr, totalnodes ,calculated_list.front()._value};
 }
 
-}
+} // end of algo namespace
 
-}
+} // end of main BobCheckers namespace
+
+#endif // BobChkrsBknd
