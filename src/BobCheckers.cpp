@@ -30,7 +30,7 @@ int main()
 
         const auto begin = high_resolution_clock::now();
 
-        move_info i = get_best_move(9, bd);
+        move_info i = get_best_move(4, bd);
 
         const auto end = high_resolution_clock::now();
         const auto duration = duration_cast<milliseconds>(end - begin);
