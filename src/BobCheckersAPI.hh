@@ -32,7 +32,8 @@ void parse_moves(std::string&& input)
     std::string move(input.substr(0, next_space));
 
     // generate moves
-    std::vector<move_wrapper> moves(move_generator::get_legal_moves(_MAIN_BOARD));
+    move_generator::move_generator mg(_MAIN_BOARD);
+    std::vector<move_wrapper> moves(mg());
 
     // exit if there are no moves
     if (!moves.size()) return;

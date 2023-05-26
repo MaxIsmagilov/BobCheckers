@@ -530,6 +530,8 @@ private:
     /// @brief the board that is being investigated
     Board _bd;
 
+    bool _captures_available{false};
+
 public:
 
     /// @brief constructor for move_generator
@@ -728,35 +730,31 @@ public:
         return std::forward<std::vector<move_wrapper>>(moves);
     }
 
+    /// @brief checks whether captures are available
+    /// @return true of false
+    inline bool captures_available()
+    {
+        return _captures_available;
+    }
+
+    /// @brief gets all the moves available
+    /// @return a vector of moves
+    inline std::vector<move_wrapper> operator()() 
+    {
+        std::vector<move_wrapper> moves = get_all_captures();
+
+        _captures_available = true;
+
+        // if there are no captures, set the moves as the silent moves
+        // this ensures that if a capture is available, only captures will be considered
+        if (moves.size() == 0) {moves = get_silents(); _captures_available = false;}
+
+        // return the resultant vector
+        return std::forward<std::vector<move_wrapper>>(moves);
+
+    }
+
 };
-
-/// @brief gets all legal moves
-/// @param bd 
-/// @return a vector of move_wrappers
-inline std::vector<move_wrapper> get_legal_moves(Board& bd)
-{
-    // create a move generator function helper initialized with the current board state
-    move_generator mg(bd);
-
-    // calculate captures
-    std::vector<move_wrapper> moves = mg.get_all_captures();
-
-    // if there are no captures, set the moves as the silent moves
-    // this ensures that if a capture is available, only captures will be considered
-    if (moves.size() == 0) moves = mg.get_silents();
-
-    // return the resultant vector
-    return std::forward<std::vector<move_wrapper>>(moves);
-}
-
-/// @brief checks if captures are available
-/// @param bd 
-/// @return true or false
-inline bool captures_available(Board& bd)
-{
-    move_generator mg(bd);
-    return (mg.get_all_captures().size() != 0);
-}
 
 } // end of move generation namespace
 
@@ -1023,9 +1021,12 @@ private:
     inline int quiescence(int depth, int alpha, int beta, int color)
     {
         (*_moves)++;
+
+        move_generator::move_generator mg(_this_stack.top());
+        std::vector<move_wrapper> moveslist = mg();
         
         // return the value if node quiet or if depth = 0
-        if (depth == 0 || move_generator::captures_available(_this_stack.top()))
+        if (depth == 0 || mg.captures_available())
             return evaluation::eval(std::forward<Board&>(_this_stack.top())) * color; 
         
         // store the original alpha
@@ -1046,7 +1047,6 @@ private:
         }
 
         // create a move vector
-        std::vector<move_wrapper> moveslist = move_generator::get_legal_moves(_this_stack.top());
 
         // if there are no moves, it is game over
         if (moveslist.size() == 0)
@@ -1128,16 +1128,17 @@ private:
             if (alpha >= beta)
                 return entry._value;
         }
+        
+        move_generator::move_generator mg(_this_stack.top());
+        std::vector<move_wrapper> moveslist = mg();
 
 
         // return the value if depth cutoff
         if (depth == 0)
         {
-            if (move_generator::captures_available(_this_stack.top())) return -quiescence(quiescence_depth, beta, alpha, -color);
+            if (mg.captures_available()) return -quiescence(quiescence_depth, beta, alpha, -color);
             else return evaluation::eval(std::forward<Board&>(_this_stack.top())) * color;
         }
-        // create a move vector
-        std::vector<move_wrapper> moveslist = move_generator::get_legal_moves(_this_stack.top());
 
         // if there are no moves, it is game over
         if (moveslist.size() == 0)
@@ -1203,7 +1204,8 @@ public:
 inline move_info get_best_move(int depth, Board& bd, tt_util::transposition_table& transposition)
 {
     // create move and final vectors
-    std::vector<move_wrapper> moveslist = move_generator::get_legal_moves(bd);
+    move_generator::move_generator mg(bd);
+    std::vector<move_wrapper> moveslist = mg();
     std::vector<move_info> calculated_list;
 
     // create node counter
