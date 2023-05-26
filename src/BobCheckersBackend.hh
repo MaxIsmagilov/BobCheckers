@@ -51,19 +51,19 @@ const std::string coordinates[64] =
 /// @param board 
 /// @param square 
 /// @return the bit (1 or 0 boolean)
-inline bool get_bit(u64 board, u64 square) { return (board & (1ULL << square));}
+static inline bool get_bit(u64 board, u64 square) { return (board & (1ULL << square));}
 
 /// @brief adds a bit to the bitboard
 /// @param board 
 /// @param square 
 /// @return an updated bitboard
-inline u64 push_bit(u64 board, u64 square) { return (board | (1ULL << square));}
+static inline u64 push_bit(u64 board, int square) { return (board | (1ULL << square));}
 
 /// @brief removes a bit from the bitboard
 /// @param board 
 /// @param square 
 /// @return an updated bitboard
-inline u64 pop_bit(u64 board, u64 square) { return (board & ~(1ULL << square));}
+static inline u64 pop_bit(u64 board, int square) { return (board & ~(1ULL << square));}
 
 /// @brief prints a bitboard
 /// @param bb 
@@ -733,7 +733,7 @@ public:
 /// @brief gets all legal moves
 /// @param bd 
 /// @return a vector of move_wrappers
-std::vector<move_wrapper> get_legal_moves(Board& bd)
+inline std::vector<move_wrapper> get_legal_moves(Board& bd)
 {
     // create a move generator function helper initialized with the current board state
     move_generator mg(bd);
@@ -747,6 +747,15 @@ std::vector<move_wrapper> get_legal_moves(Board& bd)
 
     // return the resultant vector
     return std::forward<std::vector<move_wrapper>>(moves);
+}
+
+/// @brief checks if captures are available
+/// @param bd 
+/// @return true or false
+inline bool captures_available(Board& bd)
+{
+    move_generator mg(bd);
+    return (mg.get_all_captures().size() != 0);
 }
 
 } // end of move generation namespace
@@ -1002,6 +1011,66 @@ private:
     /// @brief the value of the node
     int _value;
 
+    inline int quiescence(int depth, int alpha, int beta, int color)
+    {
+        (*_moves)++;
+        
+        // return the value if node quiet or if depth = 0
+        if (depth == 0 || move_generator::captures_available(_this_stack.top()))
+            return evaluation::eval(std::forward<Board&>(_this_stack.top())) * color; 
+        
+        // store the original alpha
+        int original_alpha = alpha;
+
+        // find a transpositon table entry
+        tt_util::tt_entry entry = _table.find(tt_util::get_key(_this_stack.top()));
+        if (entry._type != tt_util::FAIL)
+        {
+            if (entry._type == tt_util::EXACT)
+                return entry._value;
+            if (entry._type == tt_util::LBOUND)
+                alpha = std::max(alpha, entry._value);
+            if (entry._type == tt_util::UBOUND)
+                beta = std::min(beta, entry._value);
+            if (alpha >= beta)
+                return entry._value;
+        }
+
+        // create a move vector
+        std::vector<move_wrapper> moveslist = move_generator::get_legal_moves(_this_stack.top());
+
+        // if there are no moves, it is game over
+        if (moveslist.size() == 0)
+            return (game_over + depth);
+
+        // set an arbitrarily large negative number
+        int value = -infinity;
+
+        // go through the move list
+        for (move_wrapper mw: moveslist)
+        {
+            _this_stack.make_move(mw);
+            value = std::max(value, -quiescence(depth-1, beta, alpha, -color));
+            alpha = std::max(value, alpha);
+            _this_stack.unmake_move();
+            if (alpha >= beta)
+                break;
+        }
+
+        // create a new transposition table entry
+        tt_util::tt_entry newEntry;
+        newEntry._value = value;
+        if (value <= original_alpha)
+            newEntry._type = tt_util::UBOUND;
+        else if (value >= beta)
+            newEntry._type = tt_util::LBOUND;
+        else
+            newEntry._type = tt_util::EXACT;
+        _table.add(newEntry);
+
+        return value;
+    }
+
     /// @brief the negamax algorithm
     /// @param depth 
     /// @param alpha 
@@ -1054,8 +1123,10 @@ private:
 
         // return the value if depth cutoff
         if (depth == 0)
-            return evaluation::eval(std::forward<Board&>(_this_stack.top())) * color; 
-
+        {
+            if (move_generator::captures_available(_this_stack.top())) return -quiescence(2, beta, alpha, -color);
+            else return evaluation::eval(std::forward<Board&>(_this_stack.top())) * color;
+        }
         // create a move vector
         std::vector<move_wrapper> moveslist = move_generator::get_legal_moves(_this_stack.top());
 
