@@ -62,6 +62,11 @@ int parse_input(std::string&& input)
     // create a character pointer
     char* value;
 
+    // process `.exit` command
+    // note: this command is separate from the PCI, it is used for terminal gameplay
+    if (value = strstr(input.c_str(), ".exit"))
+     {  return 1; }
+
     // process `endgame` command
     if (value = strstr(input.c_str(), "endgame"))
      {  return 0; }

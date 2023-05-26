@@ -811,8 +811,8 @@ struct tt_entry
     int _value{0};
 };
 
-/// @brief size of the transposition table, currently ~1.6 GB
-constexpr size_t tablesize = sizeof(tt_entry) * 65536;
+/// @brief size of the transposition table, currently ~3.2 GB
+constexpr size_t tablesize = sizeof(tt_entry) * 131072;
 
 /// @brief failed entry constant
 constexpr tt_entry failed_entry{FAIL, 0ULL, 0};
