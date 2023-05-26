@@ -11,15 +11,18 @@ BobCheckers is a (better than a certain other) checkers engine, designed to beat
 4. negamax + ab pruning
 5. make/unmake structure
 6. PCI compliant
+7. transposition tables
+8. quiescence search
+9. piece-square table evaluation
 
 ## to be added:
-1. transposition tables
+1. tapered eval?
 2. move ordering?
 
 # System requirements
-Requred
+- Requred:
 a compiler capable of c++17
-Reccomended
+- Reccomended:
 G++/GCC 12
 
 # Installation instructions

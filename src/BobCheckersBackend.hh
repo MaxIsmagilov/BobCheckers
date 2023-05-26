@@ -1002,6 +1002,9 @@ private:
     /// @brief a deepest search variable
     const int _depth{0};
 
+    /// @brief the depth of quiescence
+    static const int quiescence_depth{2};
+
     /// @brief the total number of moves
     int* _moves{nullptr};
 
@@ -1011,6 +1014,12 @@ private:
     /// @brief the value of the node
     int _value;
 
+    /// @brief waits for the search to quiet down
+    /// @param depth 
+    /// @param alpha 
+    /// @param beta 
+    /// @param color 
+    /// @return the quiescence value
     inline int quiescence(int depth, int alpha, int beta, int color)
     {
         (*_moves)++;
@@ -1124,7 +1133,7 @@ private:
         // return the value if depth cutoff
         if (depth == 0)
         {
-            if (move_generator::captures_available(_this_stack.top())) return -quiescence(2, beta, alpha, -color);
+            if (move_generator::captures_available(_this_stack.top())) return -quiescence(quiescence_depth, beta, alpha, -color);
             else return evaluation::eval(std::forward<Board&>(_this_stack.top())) * color;
         }
         // create a move vector
