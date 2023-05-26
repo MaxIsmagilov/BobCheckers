@@ -125,8 +125,8 @@ public:
         template <typename... params>
     move_wrapper(params... squares) : _move{squares...} {}
 
-    /// @brief formats the board for output
-    /// @return a std::string representation of the board
+    /// @brief formats the move for output
+    /// @return a std::string coordinate move, eg. e3d4
     std::string print_move() 
     {
         std::string result = "";
@@ -300,6 +300,7 @@ public:
     /// for the starting position
     inline void load_pos(std::string position)
     {   
+        bitboards = {0Ull, 0ULL, 0ULL, 0ULL};
         int index{0};
         int strpos{0};
         while (position[strpos] != ' ')
@@ -788,7 +789,7 @@ constexpr int piece_values[4]
 /// @return a flipped square
 inline int flip_square(int square)
 {
-    return -square + 64;
+    return -square + 63;
 }
 
 /// @brief evaluates the position
@@ -821,7 +822,6 @@ inline int eval(Board& bd)
                 val -= king_values[flip_square(square)];
         }
     }
-
     // return the value
     return val;
 }
@@ -865,6 +865,17 @@ struct move_info
     {
         return this->_value < other._value;
     }
+
+    std::string to_string()
+    {
+        std::string s;
+        s += _mvwrpr.print_move();
+        s += ",\t";
+        s += std::to_string(_value);
+        s += ",\t";
+        s += std::to_string(_node_count);
+        return std::forward<std::string>(s);
+    }
 };
 
 /// @brief function object for calculating values
@@ -892,7 +903,7 @@ private:
     /// @param beta 
     /// @return the result of the step of negamax
     /// @note called recursively
-    inline int negamax(int depth, int alpha, int beta)
+    inline int negamax(int depth, int alpha, int beta, int color)
     {
         /* pseudocode for  the negamax algorithm */
 
@@ -914,29 +925,29 @@ private:
             (* Initial call for Player A's root node *)
             negamax(rootNode, depth, −∞, +∞, 1)
         */
-        
+
         // increment total nodes
         (*_moves)++;
 
         // return the value if depth cutoff
         if (depth == 0)
-            return evaluation::eval(_this_stack.top()) * ((_this_stack.top().get_side()) ? -1 : 1);
+            return evaluation::eval(std::forward<Board&>(_this_stack.top())) * color; 
 
         // create a move vector
         std::vector<move_wrapper> moveslist = move_generator::get_legal_moves(_this_stack.top());
 
         // if there are no moves, it is game over
         if (moveslist.size() == 0)
-            return -game_over + depth;
+            return (game_over + depth);
 
-        // set a arbitrarily large negative number
+        // set an arbitrarily large negative number
         int value = -infinity;
 
         // negamax through the move list
         for (move_wrapper mw: moveslist)
         {
             _this_stack.make_move(mw);
-            value = std::max(value, -negamax(depth-1, beta, alpha));
+            value = std::max(value, -negamax(depth-1, beta, alpha, -color));
             alpha = std::max(value, alpha);
             _this_stack.unmake_move();
             if (alpha >= beta)
@@ -963,7 +974,7 @@ public:
     /// @return the value of the node
     inline move_info operator()() 
     {
-        _value = negamax(_depth, -infinity, infinity);
+        _value = -negamax(_depth, -infinity, infinity, ((_this_stack.top().get_side()) ? 1 : -1));
         return {std::move(_mvwrpr), *_moves, _value};
     }
 
@@ -1002,7 +1013,7 @@ inline move_info get_best_move(int depth, Board& bd)
     if (calculated_list.size() == 0) return {move_wrapper(0, 0), 0, 0};
 
     // return the best node
-    return {calculated_list.front()._mvwrpr, totalnodes ,calculated_list.front()._value};
+    return {calculated_list.front()._mvwrpr, totalnodes, calculated_list.front()._value};
 }
 
 } // end of algo namespace

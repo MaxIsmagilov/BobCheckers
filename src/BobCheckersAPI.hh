@@ -79,6 +79,16 @@ int parse_input(std::string&& input)
         std::cout << "do move " << mi._mvwrpr.print_move() << "\n"; 
         _MAIN_BOARD.move(mi._mvwrpr);   }
 
+    // process `.play` command
+    // note: this command is separate from the PCI, it is used for terminal gameplay
+    else if (value = strstr(input.c_str(), ".play"))
+     {  value += 6;
+        algo::move_info mi = algo::get_best_move(std::stoi(value) , _MAIN_BOARD);  
+        std::cout << "do move " << mi._mvwrpr.print_move() << "\n"; 
+        _MAIN_BOARD.move(mi._mvwrpr);  
+        std::cout << mi._value/100.0F << ", " << mi._node_count << " nodes\n";
+        std::cout << _MAIN_BOARD.print_board() << "\n"; }
+
     // process `.printboard` command
     // note: this command is separate from the PCI, it is used for terminal gameplay
     else if (value = strstr(input.c_str(), ".printboard"))
