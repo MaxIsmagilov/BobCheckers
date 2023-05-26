@@ -8,6 +8,7 @@
 #include <string>
 #include <stack>
 #include <iostream>
+#include <random>
 
 /// @brief the main checkers namespace
 namespace Bob_checkers
@@ -750,6 +751,105 @@ std::vector<move_wrapper> get_legal_moves(Board& bd)
 
 } // end of move generation namespace
 
+/// @brief transposition table namespace
+namespace tt_util
+{
+
+/// @brief hash keys for table
+u64 hash_keys[4][64];
+
+/// @brief initializing method to generate hash keys
+void generate_hash_keys()
+{
+    std::default_random_engine generator;
+    std::uniform_int_distribution<u64> distribution(0ULL, 0xFFFFFFFFFFFFFFFFULL);
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 64; j++)
+        {
+            hash_keys[i][j] = distribution(generator);
+        }
+    }
+}
+
+/// @brief calculates the key for a board
+/// @param bd 
+/// @return the hash key
+inline u64 get_key(Board& bd)
+{
+    u64 cpy[4] = {bd[0], bd[1], bd[2], bd[3]};
+    u64 key = 0ULL;
+    for (int i = 0; i < 4;  i++)
+    {
+        while (cpy[i])
+        {
+            int j = LSB_index(cpy[i]);
+            cpy[i] = pop_bit(cpy[i], j);
+            key ^= hash_keys[i][j];
+        }
+    }
+    return key;
+} 
+
+/// @brief entry type enum
+enum tt_entry_type {EXACT, LBOUND, UBOUND, FAIL};
+
+/// @brief transposition table structure
+struct tt_entry
+{
+    tt_entry_type _type;
+    u64 _key{0ULL};
+    int _value{0};
+};
+
+/// @brief size of the transposition table, currently ~1.6 GB
+constexpr size_t tablesize = sizeof(tt_entry) * 65536;
+
+/// @brief failed entry constant
+constexpr tt_entry failed_entry{FAIL, 0ULL, 0};
+
+/// @brief transposition table class
+class transposition_table
+{
+private:
+
+    /// @brief the table, an array of the tt_entry type
+    std::array<tt_entry, tablesize/sizeof(tt_entry)> _table;
+
+    /// @brief
+    const u64 length{tablesize/sizeof(tt_entry)};
+
+    /// @brief helper function to find the index in which the entry is stored
+    /// @param tte 
+    /// @return the index
+    inline u64 get_index(const u64 key)
+     {  return key % length;  }
+
+public:
+
+    /// @brief constructor for transposition table
+    explicit transposition_table() noexcept
+     {  std::fill(_table.begin(), _table.end(), failed_entry);  }
+
+    /// @brief finds the desired entry
+    /// @param key
+    /// @return the entry or the failed_entry constant
+    inline tt_entry find(const u64 key)
+     {  return (key == _table[get_index(key)]._key) ? _table[get_index(key)] : failed_entry; }
+
+    /// @brief adds an entry to the transposition table
+    /// @param tte
+    inline void add(tt_entry& tte)
+     {  _table[get_index(tte._key)] = std::forward<tt_entry>(tte);  }
+
+    /// @brief adds an entry to the transposition table
+    /// @param tte 
+    inline void add(tt_entry&& tte)
+     {  _table[get_index(tte._key)] = std::forward<tt_entry>(tte); }
+};
+
+} // end of TT namespace
+
 /// @brief evaluation namespace
 namespace evaluation
 {
@@ -866,6 +966,8 @@ struct move_info
         return this->_value < other._value;
     }
 
+    /// @brief represents the move_wrapper as a string
+    /// @return a std::string
     std::string to_string()
     {
         std::string s;
@@ -884,6 +986,9 @@ class move_evaluator
 private:
     /// @brief a board stack to keep track of plies
     BoardStack _this_stack;
+
+    /// @brief transposition table reference
+    tt_util::transposition_table& _table;
 
     /// @brief a deepest search variable
     const int _depth{0};
@@ -929,6 +1034,24 @@ private:
         // increment total nodes
         (*_moves)++;
 
+        // store the original alpha
+        int original_alpha = alpha;
+
+        // find a transpositon table entry
+        tt_util::tt_entry entry = _table.find(tt_util::get_key(_this_stack.top()));
+        if (entry._type != tt_util::FAIL)
+        {
+            if (entry._type == tt_util::EXACT)
+                return entry._value;
+            if (entry._type == tt_util::LBOUND)
+                alpha = std::max(alpha, entry._value);
+            if (entry._type == tt_util::UBOUND)
+                beta = std::min(beta, entry._value);
+            if (alpha >= beta)
+                return entry._value;
+        }
+
+
         // return the value if depth cutoff
         if (depth == 0)
             return evaluation::eval(std::forward<Board&>(_this_stack.top())) * color; 
@@ -954,6 +1077,17 @@ private:
                 break;
         }
         
+        // create a new transposition table entry
+        tt_util::tt_entry newEntry;
+        newEntry._value = value;
+        if (value <= original_alpha)
+            newEntry._type = tt_util::UBOUND;
+        else if (value >= beta)
+            newEntry._type = tt_util::LBOUND;
+        else
+            newEntry._type = tt_util::EXACT;
+        _table.add(newEntry);
+
         // return the value
         return value;
     }
@@ -965,31 +1099,28 @@ public:
     /// @param bd 
     /// @param depth 
     /// @param mw 
-    move_evaluator(Board& bd, const int depth, move_wrapper mw) : _this_stack{BoardStack(bd)}, _depth{depth}, _moves{new int{0}}, _mvwrpr{std::move(mw)}
-    {
-        _this_stack.make_move(mw);
-    }
+    /// @param table
+    move_evaluator(Board& bd, const int depth, move_wrapper mw, tt_util::transposition_table& table) : 
+        _this_stack{BoardStack(bd)}, _depth{depth}, _moves{new int{0}}, _mvwrpr{std::move(mw)}, _table{table}
+     {  _this_stack.make_move(mw); }
 
     /// @brief operator (), calculates value
     /// @return the value of the node
     inline move_info operator()() 
-    {
-        _value = -negamax(_depth, -infinity, infinity, ((_this_stack.top().get_side()) ? 1 : -1));
-        return {std::move(_mvwrpr), *_moves, _value};
-    }
+     {  _value = -negamax(_depth, -infinity, infinity, ((_this_stack.top().get_side()) ? 1 : -1));
+        return {std::move(_mvwrpr), *_moves, _value};   }
 
     /// @brief destructor to free up pointer-bound memory
     ~move_evaluator() 
-    {
-        delete _moves;
-    }
+     {  delete _moves;  }
 };
 
 /// @brief gets the best move
 /// @param depth 
 /// @param bd 
+/// @param transposition
 /// @return the best (hopefully) move, a null move if no moves possible
-inline move_info get_best_move(int depth, Board& bd)
+inline move_info get_best_move(int depth, Board& bd, tt_util::transposition_table& transposition)
 {
     // create move and final vectors
     std::vector<move_wrapper> moveslist = move_generator::get_legal_moves(bd);
@@ -1001,7 +1132,7 @@ inline move_info get_best_move(int depth, Board& bd)
     // calculate all moves and accumulate node count into `totalnodes`
     for (move_wrapper mw : moveslist)
     {
-        move_evaluator me(bd, depth, std::move(mw));
+        move_evaluator me(bd, depth, std::move(mw), transposition);
         calculated_list.push_back(me());
         totalnodes += calculated_list.back()._node_count;
     }

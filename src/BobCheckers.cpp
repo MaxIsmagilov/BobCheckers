@@ -8,6 +8,7 @@
 void setup()
 {
     Bob_checkers::move_generator::init_move_table();
+    Bob_checkers::tt_util::generate_hash_keys();
 }
 
 int main()

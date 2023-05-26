@@ -14,6 +14,8 @@ namespace PCI
 /// @brief the main PCI board
 Board _MAIN_BOARD;
 
+tt_util::transposition_table _MAIN_TABLE;
+
 
 /// @brief parses a list of moves and applies it
 /// @param input 
@@ -75,7 +77,7 @@ int parse_input(std::string&& input)
     // process `go depth` command
     else if (value = strstr(input.c_str(), "go depth"))
      {  value += 9;
-        algo::move_info mi = algo::get_best_move(std::stoi(value) , _MAIN_BOARD);  
+        algo::move_info mi = algo::get_best_move(std::stoi(value) , _MAIN_BOARD, _MAIN_TABLE);  
         std::cout << "do move " << mi._mvwrpr.print_move() << "\n"; 
         _MAIN_BOARD.move(mi._mvwrpr);   }
 
@@ -83,7 +85,7 @@ int parse_input(std::string&& input)
     // note: this command is separate from the PCI, it is used for terminal gameplay
     else if (value = strstr(input.c_str(), ".play"))
      {  value += 6;
-        algo::move_info mi = algo::get_best_move(std::stoi(value) , _MAIN_BOARD);  
+        algo::move_info mi = algo::get_best_move(std::stoi(value) , _MAIN_BOARD, _MAIN_TABLE);  
         std::cout << "do move " << mi._mvwrpr.print_move() << "\n"; 
         _MAIN_BOARD.move(mi._mvwrpr);  
         std::cout << mi._value/100.0F << ", " << mi._node_count << " nodes\n";
