@@ -376,8 +376,11 @@ public:
 class Board_Stack
 {
 private:
+
     /// @brief a std::stack of boards
-    std::stack<Board> boards;
+    std::array<Board, 256> boards;
+    Board* _top{&boards[0]};
+    
 public:
 
     /// @brief default constructor for Board_Stack
@@ -386,53 +389,53 @@ public:
     /// @brief copy constructor for Board_Stack
     /// @param other 
     Board_Stack(const Board& other) 
-     {boards.push(other);}
+     { boards[0] = other;}
 
     /// @brief gets the board at the top of the stack
     /// @return a reference to the board
     inline Board& top()
     {
-        return std::forward<Board&>(boards.top());
+        return std::forward<Board&>(*_top);
     }
 
     /// @brief move for the board stack 
     /// @param mv 
     inline void make_move(Move_Wrapper& mv)
     {
-        boards.push(boards.top());
-        boards.top().move(mv);
+        memcpy(_top+1, _top, sizeof(Board));
+        (++_top)->move(mv);
     }
 
     /// @brief move for the board stack 
     /// @param mv 
     inline void make_move(Move_Wrapper&& mv)
     {
-        boards.push(boards.top());
-        boards.top().move(mv);
+        memcpy(_top+1, _top, sizeof(Board));
+        (++_top)->move(mv);
     }
 
     /// @brief make a move without flipping sides
     /// @param mv 
     inline void make_partial_move(Move_Wrapper& mv)
     {
-        boards.push(boards.top());
-        boards.top().move(mv);
-        boards.top().flip_side();
+        memcpy(_top+1, _top, sizeof(Board));
+        (++_top)->move(mv);
+        _top->flip_side();
     }
 
     /// @brief make a move without flipping sides
     /// @param mv 
     inline void make_partial_move(Move_Wrapper&& mv)
     {
-        boards.push(boards.top());
-        boards.top().move(mv);
-        boards.top().flip_side();
+        memcpy(_top+1, _top, sizeof(Board));
+        (++_top)->move(mv);
+        _top->flip_side();
     }
 
     /// @brief undoes a move
     inline void unmake_move()
     {
-        boards.pop();
+        --_top;
     }
 };
 
