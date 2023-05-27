@@ -1091,7 +1091,7 @@ private:
     /// @param beta 
     /// @return the result of the step of negamax
     /// @note called recursively
-    inline int negamax(int depth, int alpha, int beta, int color)
+    inline int negamax(int depth, int alpha, int beta, int color, bool can_cut)
     {
         /* pseudocode for  the negamax algorithm */
 
@@ -1119,11 +1119,13 @@ private:
         move_generator::Move_Generator mg(_this_stack.top());
         std::vector<Move_Wrapper> moveslist = mg();
 
-        if (depth <= cut_depth && !mg.captures_available())
+        if (depth <= cut_depth && !mg.captures_available() && can_cut)
         {
             depth -= 2;
             alpha = beta-1;
         }
+
+        can_cut = false;
 
         // increment total nodes
         (*_moves)++;
@@ -1164,9 +1166,10 @@ private:
         for (Move_Wrapper mw: moveslist)
         {
             _this_stack.make_move(mw);
-            value = std::max(value, -negamax(depth-1, -beta, -alpha, -color));
+            value = std::max(value, -negamax(depth-1, -beta, -alpha, -color, can_cut));
             alpha = std::max(value, alpha);
             _this_stack.unmake_move();
+            can_cut = true;
             if (alpha >= beta)
                 break;
         }
@@ -1201,7 +1204,7 @@ public:
     /// @brief operator (), calculates value
     /// @return the value of the node
     inline Move_Info operator()() 
-     {  _value = -negamax(_depth, -infinity, infinity, ((_this_stack.top().get_side()) ? 1 : -1));
+     {  _value = -negamax(_depth, -infinity, infinity, ((_this_stack.top().get_side()) ? 1 : -1), false);
         return {std::move(_mvwrpr), *_moves, _value};   }
 
     /// @brief destructor to free up pointer-bound memory
@@ -1227,7 +1230,7 @@ inline Move_Info get_best_move(int depth, Board& bd, tt_util::Transposition_Tabl
     // calculate all moves and accumulate node count into `totalnodes`
     for (Move_Wrapper mw : moveslist)
     {
-        Move_Evaluator me(bd, depth, std::move(mw), transposition);
+        Move_Evaluator me(bd, depth-1, std::move(mw), transposition);
         calculated_list.push_back(me());
         totalnodes += calculated_list.back()._node_count;
     }
