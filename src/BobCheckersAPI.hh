@@ -14,7 +14,7 @@ namespace PCI
 /// @brief the main PCI board
 Board _MAIN_BOARD;
 
-tt_util::transposition_table _MAIN_TABLE;
+tt_util::Transposition_Table _MAIN_TABLE;
 
 
 /// @brief parses a list of moves and applies it
@@ -32,17 +32,17 @@ void parse_moves(std::string&& input)
     std::string move(input.substr(0, next_space));
 
     // generate moves
-    move_generator::move_generator mg(_MAIN_BOARD);
-    std::vector<move_wrapper> moves(mg());
+    move_generator::Move_Generator mg(_MAIN_BOARD);
+    std::vector<Move_Wrapper> moves(mg());
 
     // exit if there are no moves
     if (!moves.size()) return;
 
     // go through the moves, checking if any of them match
-    move_wrapper mw;
-    for (move_wrapper check : moves)
+    Move_Wrapper mw;
+    for (Move_Wrapper check : moves)
     {
-        mw = move_wrapper(check);
+        mw = Move_Wrapper(check);
 
         // if a move matches, exit the loop
         if (check.print_move() == move) break;
@@ -83,7 +83,7 @@ int parse_input(std::string&& input)
     // process `go depth` command
     else if (value = strstr(input.c_str(), "go depth"))
      {  value += 9;
-        algo::move_info mi = algo::get_best_move(std::stoi(value) , _MAIN_BOARD, _MAIN_TABLE);  
+        algo::Move_Info mi = algo::get_best_move(std::stoi(value) , _MAIN_BOARD, _MAIN_TABLE);  
         std::cout << "do move " << mi._mvwrpr.print_move() << "\n"; 
         _MAIN_BOARD.move(mi._mvwrpr);   }
 
@@ -91,7 +91,7 @@ int parse_input(std::string&& input)
     // note: this command is separate from the PCI, it is used for terminal gameplay
     else if (value = strstr(input.c_str(), ".play"))
      {  value += 6;
-        algo::move_info mi = algo::get_best_move(std::stoi(value) , _MAIN_BOARD, _MAIN_TABLE);  
+        algo::Move_Info mi = algo::get_best_move(std::stoi(value) , _MAIN_BOARD, _MAIN_TABLE);  
         std::cout << "do move " << mi._mvwrpr.print_move() << "\n"; 
         _MAIN_BOARD.move(mi._mvwrpr);  
         std::cout << mi._value/100.0F << ", " << mi._node_count << " nodes\n";

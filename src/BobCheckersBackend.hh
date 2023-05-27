@@ -107,24 +107,24 @@ static inline int LSB_index(const uint64_t& test)
 /*      main classes    */
 
 /// @brief contains a move via a vector of the squares to move to
-class move_wrapper
+class Move_Wrapper
 {
 public:
-    /// @brief the vector containing move_wrapper moves
+    /// @brief the vector containing Move_Wrapper moves
     std::vector<int> _move;
 
-    /// @brief default constructor for move_wrapper
-    move_wrapper() {}
+    /// @brief default constructor for Move_Wrapper
+    Move_Wrapper() {}
 
-    /// @brief copy constructor for move_wrapper
+    /// @brief copy constructor for Move_Wrapper
     /// @param other 
-    move_wrapper(const move_wrapper& other) : _move{std::move(other._move)} {}  
+    Move_Wrapper(const Move_Wrapper& other) : _move{std::move(other._move)} {}  
 
-    /// @brief varaidic template constructor for move_wrapper
+    /// @brief varaidic template constructor for Move_Wrapper
     /// @tparam ...params 
     /// @param ...squares a list of squares, should be an int type
         template <typename... params>
-    move_wrapper(params... squares) : _move{squares...} {}
+    Move_Wrapper(params... squares) : _move{squares...} {}
 
     /// @brief formats the move for output
     /// @return a std::string coordinate move, eg. e3d4
@@ -271,7 +271,7 @@ public:
 
     /// @brief executes a move
     /// @param mv 
-    inline void move(move_wrapper& mv)
+    inline void move(Move_Wrapper& mv)
     {   
         // just executes single moves one by one
         std::vector<int> moves{std::move(mv._move)};
@@ -284,7 +284,7 @@ public:
 
     /// @brief executes a move
     /// @param mv 
-    inline void move(move_wrapper&& mv)
+    inline void move(Move_Wrapper&& mv)
     {   
         // just executes single moves one by one
         std::vector<int> moves{std::move(mv._move)};
@@ -373,19 +373,19 @@ public:
 };
 
 /// @brief manages a stack of boards, used for make/unmake move
-class BoardStack
+class Board_Stack
 {
 private:
     /// @brief a std::stack of boards
     std::stack<Board> boards;
 public:
 
-    /// @brief default constructor for BoardStack
-    explicit BoardStack() noexcept {}
+    /// @brief default constructor for Board_Stack
+    explicit Board_Stack() noexcept {}
 
-    /// @brief copy constructor for BoardStack
+    /// @brief copy constructor for Board_Stack
     /// @param other 
-    BoardStack(const Board& other) 
+    Board_Stack(const Board& other) 
      {boards.push(other);}
 
     /// @brief gets the board at the top of the stack
@@ -397,7 +397,7 @@ public:
 
     /// @brief move for the board stack 
     /// @param mv 
-    inline void make_move(move_wrapper& mv)
+    inline void make_move(Move_Wrapper& mv)
     {
         boards.push(boards.top());
         boards.top().move(mv);
@@ -405,7 +405,7 @@ public:
 
     /// @brief move for the board stack 
     /// @param mv 
-    inline void make_move(move_wrapper&& mv)
+    inline void make_move(Move_Wrapper&& mv)
     {
         boards.push(boards.top());
         boards.top().move(mv);
@@ -413,7 +413,7 @@ public:
 
     /// @brief make a move without flipping sides
     /// @param mv 
-    inline void make_partial_move(move_wrapper& mv)
+    inline void make_partial_move(Move_Wrapper& mv)
     {
         boards.push(boards.top());
         boards.top().move(mv);
@@ -422,7 +422,7 @@ public:
 
     /// @brief make a move without flipping sides
     /// @param mv 
-    inline void make_partial_move(move_wrapper&& mv)
+    inline void make_partial_move(Move_Wrapper&& mv)
     {
         boards.push(boards.top());
         boards.top().move(mv);
@@ -521,14 +521,14 @@ void init_move_table()
 }
 
 /// @brief move generator function object
-class move_generator
+class Move_Generator
 {
 private:
     /// @brief the main boardstack
-    BoardStack _move_stack;
+    Board_Stack _move_stack;
 
     /// @brief the board that is being investigated
-    Board _bd;
+    const Board _bd;
 
     bool _captures_available{false};
 
@@ -536,23 +536,23 @@ public:
 
     /// @brief constructor for move_generator
     /// @param bd 
-    move_generator(Board&& bd): _move_stack{bd}, _bd{bd} {}
+    Move_Generator(Board&& bd): _move_stack{bd}, _bd{bd} {}
 
     /// @brief constructor for move_generator
     /// @param bd 
-    move_generator(Board& bd): _move_stack{bd}, _bd{bd} {}
+    Move_Generator(Board& bd): _move_stack{bd}, _bd{bd} {}
 
     /// @brief get captures on a square
     /// @param bd 
     /// @param square 
     /// @return a vector of move_wrappers
-    inline std::vector<move_wrapper> get_captures(int square)
+    inline std::vector<Move_Wrapper> get_captures(const int square)
     {
         // grab the board state 
-        Board& bd = _move_stack.top();
+        const Board& bd = _move_stack.top();
 
         // init move vector
-        std::vector<move_wrapper> moves;
+        std::vector<Move_Wrapper> moves;
 
         // init constants
         const int aside = (bd.get_side()) ? 0 : 2;
@@ -574,23 +574,23 @@ public:
             while (att)
             {
                 // get a possible end square
-                int end = LSB_index(att);
+                const int end = LSB_index(att);
                 att = pop_bit(att, end);
 
                 // parse move if it captures a piece and moves to an available square
                 if (((1ULL << end) & ~all_occ) && ((1ULL << ((start+end) / 2)) & defending_occ)) 
                 {
                     // make a partial move and recursively find next captures
-                    _move_stack.make_partial_move(move_wrapper(start,end));
-                    std::vector<move_wrapper> temp = get_captures(end);
+                    _move_stack.make_partial_move(Move_Wrapper(start,end));
+                    std::vector<Move_Wrapper> temp = get_captures(end);
 
                     // if there are no future captures, continue
-                    if (temp.size() == 0 || end / 8 == 0 || end / 8 == 7) moves.push_back(move_wrapper(start,end));
+                    if (temp.size() == 0 || end / 8 == 0 || end / 8 == 7) moves.push_back(Move_Wrapper(start,end));
 
                     // else concatenate the future moves to the current ones
-                    else for (move_wrapper mw : temp)
+                    else for (Move_Wrapper mw : temp)
                     {
-                        moves.push_back(std::forward<move_wrapper>(move_wrapper(start,end)));
+                        moves.push_back(std::forward<Move_Wrapper>(Move_Wrapper(start,end)));
                         std::for_each(mw._move.begin() + 1, mw._move.end(), [&](int i) {moves.back()._move.push_back(i);});
                     }
 
@@ -613,23 +613,23 @@ public:
             while (att)
             {
                 // get a possible end square
-                int end = LSB_index(att);
+                const int end = LSB_index(att);
                 att = pop_bit(att, end);
 
                 // parse move if it captures a piece and moves to an available square
                 if (((1ULL << end) & ~all_occ) && ((1ULL << ((start+end) / 2)) & defending_occ)) 
                 {
                     // make a partial move and recursively find next captures
-                    _move_stack.make_partial_move(move_wrapper(start,end));
-                    std::vector<move_wrapper> temp = get_captures(end);
+                    _move_stack.make_partial_move(Move_Wrapper(start,end));
+                    std::vector<Move_Wrapper> temp = get_captures(end);
 
                     // if there are no future captures, continue
-                    if (temp.size() == 0) moves.push_back(move_wrapper(start,end));
+                    if (temp.size() == 0) moves.push_back(Move_Wrapper(start,end));
 
                     // else concatenate the future moves to the current ones
-                    else for (move_wrapper mw : temp)
+                    else for (Move_Wrapper mw : temp)
                     {
-                        moves.push_back(std::forward<move_wrapper>(move_wrapper(start,end)));
+                        moves.push_back(std::forward<Move_Wrapper>(Move_Wrapper(start,end)));
                         std::for_each(mw._move.begin() + 1, mw._move.end(), [&](int i) {moves.back()._move.push_back(i);});
                     }
 
@@ -640,17 +640,17 @@ public:
         }
 
         // return the resultant vector
-        return std::forward<std::vector<move_wrapper>>(moves);
+        return std::forward<std::vector<Move_Wrapper>>(moves);
     }
 
     /// @brief gets all captures
     /// @param bd 
     /// @return a vector of move_wrappers
-    inline std::vector<move_wrapper> get_all_captures()
+    inline std::vector<Move_Wrapper> get_all_captures()
     {
         // create final and piece-wise move vectors
-        std::vector<move_wrapper> moves;
-        std::vector<move_wrapper> newmoves;
+        std::vector<Move_Wrapper> moves;
+        std::vector<Move_Wrapper> newmoves;
 
         // go through squares and find captures
         for (int i = 0; i < 64; i++)
@@ -659,21 +659,21 @@ public:
             newmoves = get_captures(i);
 
             // add all new moves to the final vector
-            for (move_wrapper mw: newmoves)
-             {  moves.push_back(std::forward<move_wrapper>(mw)); }
+            for (Move_Wrapper mw: newmoves)
+             {  moves.push_back(std::forward<Move_Wrapper>(mw)); }
         }
 
         // return the vector
-        return std::forward<std::vector<move_wrapper>>(moves);
+        return std::forward<std::vector<Move_Wrapper>>(moves);
     }
 
     /// @brief gets all silent moves
     /// @param bd 
     /// @return a vector of move_wrappers
-    inline std::vector<move_wrapper> get_silents()
+    inline std::vector<Move_Wrapper> get_silents()
     {
         // create blank move vector
-        std::vector<move_wrapper> moves;
+        std::vector<Move_Wrapper> moves;
 
         // create helpful constants
         const int aside = (_bd.get_side()) ? 0 : 2;
@@ -700,7 +700,7 @@ public:
                 att = pop_bit(att, end);
 
                 // if the end square is not occupied, consider it valid
-                if ((1ULL << end) & ~all_occ) moves.push_back(move_wrapper(start,end));
+                if ((1ULL << end) & ~all_occ) moves.push_back(Move_Wrapper(start,end));
             }
         }
         
@@ -722,12 +722,12 @@ public:
                 att = pop_bit(att, end);
 
                 // if the end square is not occupied, consider it valid
-                if ((1ULL << end) & ~all_occ) moves.push_back(move_wrapper(start,end));
+                if ((1ULL << end) & ~all_occ) moves.push_back(Move_Wrapper(start,end));
             }
         }
 
         // return the resultant vector
-        return std::forward<std::vector<move_wrapper>>(moves);
+        return std::forward<std::vector<Move_Wrapper>>(moves);
     }
 
     /// @brief checks whether captures are available
@@ -739,9 +739,9 @@ public:
 
     /// @brief gets all the moves available
     /// @return a vector of moves
-    inline std::vector<move_wrapper> operator()() 
+    inline std::vector<Move_Wrapper> operator()() 
     {
-        std::vector<move_wrapper> moves = get_all_captures();
+        std::vector<Move_Wrapper> moves = get_all_captures();
 
         _captures_available = true;
 
@@ -750,7 +750,7 @@ public:
         if (moves.size() == 0) {moves = get_silents(); _captures_available = false;}
 
         // return the resultant vector
-        return std::forward<std::vector<move_wrapper>>(moves);
+        return std::forward<std::vector<Move_Wrapper>>(moves);
 
     }
 
@@ -782,7 +782,7 @@ void generate_hash_keys()
 /// @brief calculates the key for a board
 /// @param bd 
 /// @return the hash key
-inline u64 get_key(Board& bd)
+static inline u64 get_key(Board& bd)
 {
     u64 cpy[4] = {bd[0], bd[1], bd[2], bd[3]};
     u64 key = 0ULL;
@@ -802,7 +802,7 @@ inline u64 get_key(Board& bd)
 enum tt_entry_type {EXACT, LBOUND, UBOUND, FAIL};
 
 /// @brief transposition table structure
-struct tt_entry
+struct TT_Entry
 {
     tt_entry_type _type;
     u64 _key{0ULL};
@@ -810,21 +810,21 @@ struct tt_entry
 };
 
 /// @brief size of the transposition table, currently ~3.2 GB
-constexpr size_t tablesize = sizeof(tt_entry) * 131072;
+constexpr size_t tablesize = sizeof(TT_Entry) * 131072;
 
 /// @brief failed entry constant
-constexpr tt_entry failed_entry{FAIL, 0ULL, 0};
+constexpr TT_Entry failed_entry{FAIL, 0ULL, 0};
 
 /// @brief transposition table class
-class transposition_table
+class Transposition_Table
 {
 private:
 
-    /// @brief the table, an array of the tt_entry type
-    std::array<tt_entry, tablesize/sizeof(tt_entry)> _table;
+    /// @brief the table, an array of the TT_Entry type
+    std::array<TT_Entry, tablesize/sizeof(TT_Entry)> _table;
 
     /// @brief
-    const u64 length{tablesize/sizeof(tt_entry)};
+    const u64 length{tablesize/sizeof(TT_Entry)};
 
     /// @brief helper function to find the index in which the entry is stored
     /// @param tte 
@@ -835,24 +835,24 @@ private:
 public:
 
     /// @brief constructor for transposition table
-    explicit transposition_table() noexcept
+    explicit Transposition_Table() noexcept
      {  std::fill(_table.begin(), _table.end(), failed_entry);  }
 
     /// @brief finds the desired entry
     /// @param key
     /// @return the entry or the failed_entry constant
-    inline tt_entry find(const u64 key)
+    inline TT_Entry find(const u64 key)
      {  return (key == _table[get_index(key)]._key) ? _table[get_index(key)] : failed_entry; }
 
     /// @brief adds an entry to the transposition table
     /// @param tte
-    inline void add(tt_entry& tte)
-     {  _table[get_index(tte._key)] = std::forward<tt_entry>(tte);  }
+    inline void add(TT_Entry& tte)
+     {  _table[get_index(tte._key)] = std::forward<TT_Entry>(tte);  }
 
     /// @brief adds an entry to the transposition table
     /// @param tte 
-    inline void add(tt_entry&& tte)
-     {  _table[get_index(tte._key)] = std::forward<tt_entry>(tte); }
+    inline void add(TT_Entry&& tte)
+     {  _table[get_index(tte._key)] = std::forward<TT_Entry>(tte); }
 };
 
 } // end of TT namespace
@@ -868,41 +868,40 @@ constexpr int man_values[64]
     24,  0, 10,  0,  8,  0,  9,  0,
      0,  8,  0, 10,  0, 10,  0, 24,
      3,  0,  4,  0,  5,  0,  1,  0,
-     0,  2,  0,  6,  0,  5,  0,  1,
-     0,  0,  0,  0,  0,  0,  0,  0,
-     0, -1,  0,  5,  0,  8,  0, 25,
-    -5,  0, 20,  0, 10,  0, 30,  0
+     0,  2,  0,  13,  0,  8,  0,  1,
+     1,  0,  2,  0,  1,  0,  0,  0,
+     0, -1,  0,  7,  0,  9,  0, 25,
+    -5,  0, 23,  0, 10,  0, 32,  0
 };
 
 /// @brief king value constants
 constexpr int king_values[64] 
 {
-     0, -7,  0, -1,  0, -3,  0, -5,
+     0, -7,  0, -1,  0, -3,  0,-10,
     -5,  0,  0,  0, -1,  0, -1,  0,
-     0,  8,  0, 10,  0,  0,  0, -1,
-    -1,  0, 10,  0, 10,  0,  1,  0,
-     0,  2,  0, 10,  0, 10,  0, -1,
-    -1,  0,  0,  0,  10, 0,  0,  0,
+     0,  1,  0, 10,  0,  8,  0, -1,
+    -1,  0, 10,  0, 11,  0,  1,  0,
+     0,  2,  0, 11,  0, 10,  0, -1,
+    -1,  0,  8,  0,  10, 0,  0,  0,
      0, -1,  0, -1,  0, -1,  0, -1,
-    -5,  0,  0,  0, -1,  0, -7,  0
+   -10,  0,  0,  0, -1,  0, -7,  0
 };
 
 /// @brief piece value constants
 constexpr int piece_values[4]
-{ 100, 1000, -100, -1000};
+ {  100, 1000, -100, -1000  };
 
 /// @brief flips the square
 /// @param square 
 /// @return a flipped square
-inline int flip_square(int square)
-{
-    return -square + 63;
-}
+
+#define flip_square(square) (63 - square)
+
 
 /// @brief evaluates the position
 /// @param bd 
 /// @return the evaluation (an int)
-inline int eval(Board& bd)
+static inline int eval(const Board& bd)
 {
     // load bitboards into temp values
     u64 pieces[4] = {bd[0], bd[1], bd[2], bd[3]};
@@ -929,6 +928,7 @@ inline int eval(Board& bd)
                 val -= king_values[flip_square(square)];
         }
     }
+
     // return the value
     return val;
 }
@@ -946,10 +946,10 @@ const int infinity = 1000000;
 const int game_over = 100000;
 
 /// @brief move information struct
-struct move_info
+struct Move_Info
 {
-    /// @brief a move_wrapper containing the move
-    move_wrapper _mvwrpr;
+    /// @brief a Move_Wrapper containing the move
+    Move_Wrapper _mvwrpr;
 
     /// @brief the count of total nodes checked
     int _node_count;
@@ -960,7 +960,7 @@ struct move_info
     /// @brief overriden > operator
     /// @param other 
     /// @return the value of the > operator on the `value` variables of each
-    inline bool operator>(const move_info& other)
+    inline bool operator>(const Move_Info& other)
     {
         return this->_value > other._value;
     }
@@ -968,12 +968,12 @@ struct move_info
     /// @brief overriden < operator
     /// @param other 
     /// @return the value of the < operator on the `value` variables of each
-    inline bool operator<(const move_info& other)
+    inline bool operator<(const Move_Info& other)
     {
         return this->_value < other._value;
     }
 
-    /// @brief represents the move_wrapper as a string
+    /// @brief represents the Move_Wrapper as a string
     /// @return a std::string
     std::string to_string()
     {
@@ -988,14 +988,14 @@ struct move_info
 };
 
 /// @brief function object for calculating values
-class move_evaluator
+class Move_Evaluator
 {
 private:
     /// @brief a board stack to keep track of plies
-    BoardStack _this_stack;
+    Board_Stack _this_stack;
 
     /// @brief transposition table reference
-    tt_util::transposition_table& _table;
+    tt_util::Transposition_Table& _table;
 
     /// @brief a deepest search variable
     const int _depth{0};
@@ -1003,11 +1003,13 @@ private:
     /// @brief the depth of quiescence
     static const int quiescence_depth{2};
 
+    const int cut_depth{1000};
+
     /// @brief the total number of moves
     int* _moves{nullptr};
 
     /// @brief the move that is being checked
-    const move_wrapper _mvwrpr;
+    const Move_Wrapper _mvwrpr;
 
     /// @brief the value of the node
     int _value;
@@ -1022,8 +1024,8 @@ private:
     {
         (*_moves)++;
 
-        move_generator::move_generator mg(_this_stack.top());
-        std::vector<move_wrapper> moveslist = mg();
+        move_generator::Move_Generator mg(_this_stack.top());
+        std::vector<Move_Wrapper> moveslist = mg();
         
         // return the value if node quiet or if depth = 0
         if (depth == 0 || mg.captures_available())
@@ -1033,7 +1035,7 @@ private:
         int original_alpha = alpha;
 
         // find a transpositon table entry
-        tt_util::tt_entry entry = _table.find(tt_util::get_key(_this_stack.top()));
+        tt_util::TT_Entry entry = _table.find(tt_util::get_key(_this_stack.top()));
         if (entry._type != tt_util::FAIL)
         {
             if (entry._type == tt_util::EXACT)
@@ -1050,16 +1052,16 @@ private:
 
         // if there are no moves, it is game over
         if (moveslist.size() == 0)
-            return (game_over + depth);
+            return -(game_over + depth);
 
         // set an arbitrarily large negative number
         int value = -infinity;
 
         // go through the move list
-        for (move_wrapper mw: moveslist)
+        for (Move_Wrapper mw: moveslist)
         {
             _this_stack.make_move(mw);
-            value = std::max(value, -quiescence(depth-1, beta, alpha, -color));
+            value = std::max(value, -quiescence(depth-1, -beta, -alpha, -color));
             alpha = std::max(value, alpha);
             _this_stack.unmake_move();
             if (alpha >= beta)
@@ -1067,7 +1069,7 @@ private:
         }
 
         // create a new transposition table entry
-        tt_util::tt_entry newEntry;
+        tt_util::TT_Entry newEntry;
         newEntry._value = value;
         if (value <= original_alpha)
             newEntry._type = tt_util::UBOUND;
@@ -1109,6 +1111,17 @@ private:
             negamax(rootNode, depth, −∞, +∞, 1)
         */
 
+       
+        
+        move_generator::Move_Generator mg(_this_stack.top());
+        std::vector<Move_Wrapper> moveslist = mg();
+
+        if (depth <= cut_depth && !mg.captures_available())
+        {
+            depth -= 2;
+            alpha = beta-1;
+        }
+
         // increment total nodes
         (*_moves)++;
 
@@ -1116,7 +1129,7 @@ private:
         int original_alpha = alpha;
 
         // find a transpositon table entry
-        tt_util::tt_entry entry = _table.find(tt_util::get_key(_this_stack.top()));
+        tt_util::TT_Entry entry = _table.find(tt_util::get_key(_this_stack.top()));
         if (entry._type != tt_util::FAIL)
         {
             if (entry._type == tt_util::EXACT)
@@ -1128,30 +1141,27 @@ private:
             if (alpha >= beta)
                 return entry._value;
         }
-        
-        move_generator::move_generator mg(_this_stack.top());
-        std::vector<move_wrapper> moveslist = mg();
 
 
         // return the value if depth cutoff
-        if (depth == 0)
+        if (depth <= 0)
         {
-            if (mg.captures_available()) return -quiescence(quiescence_depth, beta, alpha, -color);
+            if (mg.captures_available()) return -quiescence(quiescence_depth, -beta, -alpha, -color);
             else return evaluation::eval(std::forward<Board&>(_this_stack.top())) * color;
         }
 
         // if there are no moves, it is game over
         if (moveslist.size() == 0)
-            return (game_over + depth);
+            return -(game_over + depth);
 
         // set an arbitrarily large negative number
         int value = -infinity;
 
         // negamax through the move list
-        for (move_wrapper mw: moveslist)
+        for (Move_Wrapper mw: moveslist)
         {
             _this_stack.make_move(mw);
-            value = std::max(value, -negamax(depth-1, beta, alpha, -color));
+            value = std::max(value, -negamax(depth-1, -beta, -alpha, -color));
             alpha = std::max(value, alpha);
             _this_stack.unmake_move();
             if (alpha >= beta)
@@ -1159,7 +1169,7 @@ private:
         }
         
         // create a new transposition table entry
-        tt_util::tt_entry newEntry;
+        tt_util::TT_Entry newEntry;
         newEntry._value = value;
         if (value <= original_alpha)
             newEntry._type = tt_util::UBOUND;
@@ -1176,23 +1186,23 @@ private:
 
 public:
 
-    /// @brief constructor for move_evaluator
+    /// @brief constructor for Move_Evaluator
     /// @param bd 
     /// @param depth 
     /// @param mw 
     /// @param table
-    move_evaluator(Board& bd, const int depth, move_wrapper mw, tt_util::transposition_table& table) : 
-        _this_stack{BoardStack(bd)}, _depth{depth}, _moves{new int{0}}, _mvwrpr{std::move(mw)}, _table{table}
+    Move_Evaluator(Board& bd, const int depth, Move_Wrapper mw, tt_util::Transposition_Table& table) : 
+        _this_stack{Board_Stack(bd)}, _depth{depth}, _moves{new int{0}}, _mvwrpr{std::move(mw)}, _table{table}, cut_depth{(depth-4)}
      {  _this_stack.make_move(mw); }
 
     /// @brief operator (), calculates value
     /// @return the value of the node
-    inline move_info operator()() 
+    inline Move_Info operator()() 
      {  _value = -negamax(_depth, -infinity, infinity, ((_this_stack.top().get_side()) ? 1 : -1));
         return {std::move(_mvwrpr), *_moves, _value};   }
 
     /// @brief destructor to free up pointer-bound memory
-    ~move_evaluator() 
+    ~Move_Evaluator() 
      {  delete _moves;  }
 };
 
@@ -1201,20 +1211,20 @@ public:
 /// @param bd 
 /// @param transposition
 /// @return the best (hopefully) move, a null move if no moves possible
-inline move_info get_best_move(int depth, Board& bd, tt_util::transposition_table& transposition)
+inline Move_Info get_best_move(int depth, Board& bd, tt_util::Transposition_Table& transposition)
 {
     // create move and final vectors
-    move_generator::move_generator mg(bd);
-    std::vector<move_wrapper> moveslist = mg();
-    std::vector<move_info> calculated_list;
+    move_generator::Move_Generator mg(bd);
+    std::vector<Move_Wrapper> moveslist = mg();
+    std::vector<Move_Info> calculated_list;
 
     // create node counter
     int totalnodes = 0;
 
     // calculate all moves and accumulate node count into `totalnodes`
-    for (move_wrapper mw : moveslist)
+    for (Move_Wrapper mw : moveslist)
     {
-        move_evaluator me(bd, depth, std::move(mw), transposition);
+        Move_Evaluator me(bd, depth, std::move(mw), transposition);
         calculated_list.push_back(me());
         totalnodes += calculated_list.back()._node_count;
     }
@@ -1223,7 +1233,7 @@ inline move_info get_best_move(int depth, Board& bd, tt_util::transposition_tabl
     std::sort(calculated_list.begin(), calculated_list.end(), std::greater<>());
 
     // return a null move if there are no moves avalavble
-    if (calculated_list.size() == 0) return {move_wrapper(0, 0), 0, 0};
+    if (calculated_list.size() == 0) return {Move_Wrapper(0, 0), 0, 0};
 
     // return the best node
     return {calculated_list.front()._mvwrpr, totalnodes, calculated_list.front()._value};
