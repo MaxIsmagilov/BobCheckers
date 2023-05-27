@@ -17,7 +17,21 @@ namespace Bob_checkers
 /*      board types & squares   */
 
 /// @brief define the bitboard type
+typedef unsigned long int u32;
+
+
+/// @brief define the u64
 typedef unsigned long long u64;
+
+inline int indexto64(int index)
+{
+    return (index * 2) + !((index/4)%2);
+}
+
+inline int indexto32(int index)
+{
+    return ((index) / 2);
+}
 
 /// @brief squares of pieces
 enum square 
@@ -51,30 +65,32 @@ const std::string coordinates[64] =
 /// @param board 
 /// @param square 
 /// @return the bit (1 or 0 boolean)
-static inline bool get_bit(u64 board, u64 square) { return (board & (1ULL << square));}
+static inline bool get_bit(u32 board, int square) { return (board & (1UL << square));}
 
 /// @brief adds a bit to the bitboard
 /// @param board 
 /// @param square 
 /// @return an updated bitboard
-static inline u64 push_bit(u64 board, int square) { return (board | (1ULL << square));}
+static inline u32 push_bit(u32 board, int square) { return (board | (1UL << square));}
 
 /// @brief removes a bit from the bitboard
 /// @param board 
 /// @param square 
 /// @return an updated bitboard
-static inline u64 pop_bit(u64 board, int square) { return (board & ~(1ULL << square));}
+static inline u32 pop_bit(u32 board, int square) { return (board & ~(1UL << square));}
 
 /// @brief prints a bitboard
 /// @param bb 
 /// @return a string
-std::string print_bitboard(const uint64_t& bb)
+std::string print_bitboard(const u32& bb)
 {
     std::string str = "";
-    for (int i = 0; i < 64; i++)
+    for (int i = 0; i < 32; i++)
     {
+        if (!((i/4)%2) && i%4 == 0) str += "  ";
         str += (get_bit(bb,i)) ? '1' : '0';
-        if (i%8 == 7) {str += '\n';}
+        str += "   ";
+        if (i%4 == 3) {str += '\n';}
     }
     return str;
 }
@@ -84,9 +100,9 @@ std::string print_bitboard(const uint64_t& bb)
 /// @brief counts the bits in a bitboard
 /// @param bitboard 
 /// @return the number of bits
-static inline unsigned int count_bits(const uint64_t& bitboard) 
+static inline unsigned int count_bits(const u32& bitboard) 
 {
-    uint64_t test = bitboard;
+    u32 test = bitboard;
     unsigned int bitnumber = 0;
     while (test)
     {
@@ -99,7 +115,7 @@ static inline unsigned int count_bits(const uint64_t& bitboard)
 /// @brief  finds the index of the least significant bit
 /// @param test 
 /// @return the index
-static inline int LSB_index(const uint64_t& test) 
+static inline int LSB_index(const u32& test) 
 {
     return (test) ? count_bits((test &  -test) - 1) : -1;
 }
@@ -133,7 +149,7 @@ public:
         std::string result = "";
         for (int i : _move)
         {
-            result += coordinates[i];
+            result +=  coordinates[indexto64(i)];
         }
         return std::forward<std::string>(result);
     }
@@ -146,7 +162,7 @@ private:
 
     /// @brief std::array of the bitboards,
     /// is formatted as {white men, white kings, black men, black kings}
-    std::array<u64, 4> bitboards; 
+    std::array<u32, 4> bitboards; 
 
     /// @brief contains the side to move. 1 and 0 for white and black, respectively.
     unsigned int side_to_move;
@@ -157,11 +173,11 @@ private:
     inline void single_move(int square1, int square2)
     {
         // identify if the move captures
-        bool capture = (abs(square1 - square2) > 9);
+        bool capture = (abs(square1 - square2) > 5);
 
         // find the starting and ending bits
-        const u64 startbit = 1ULL << square1;
-        const u64 endbit = 1ULL << square2;
+        const u32 startbit = 1ULL << square1;
+        const u32 endbit = 1ULL << square2;
 
         // init piece variable
         int piece{-1};
@@ -177,7 +193,7 @@ private:
                 piece = 0;
             else
                 piece = 1;
-            promote = (piece == 0 && (square2 / 8 == 0));
+            promote = (piece == 0 && (indexto64(square2) / 8 == 0));
         }
         // for black
         else 
@@ -186,7 +202,7 @@ private:
                 piece = 2;
             else
                 piece = 3;
-            promote = (piece == 2 && (square2 / 8 == 7));
+            promote = (piece == 2 && (indexto64(square2) / 8 == 7));
         }
 
         // remove the piece on the origin square
@@ -201,10 +217,10 @@ private:
         // remove any possible captured pieces if relevant
         if (capture) 
         {
-            bitboards[0] &= ~(1ULL << ((square1 + square2)/2));
-            bitboards[1] &= ~(1ULL << ((square1 + square2)/2));
-            bitboards[2] &= ~(1ULL << ((square1 + square2)/2));
-            bitboards[3] &= ~(1ULL << ((square1 + square2)/2));
+            bitboards[0] &= ~(1ULL << indexto32((indexto64(square1) + indexto64(square2))/2));
+            bitboards[1] &= ~(1ULL << indexto32((indexto64(square1) + indexto64(square2))/2));
+            bitboards[2] &= ~(1ULL << indexto32((indexto64(square1) + indexto64(square2))/2));
+            bitboards[3] &= ~(1ULL << indexto32((indexto64(square1) + indexto64(square2))/2));
         }
     }
 
@@ -233,13 +249,13 @@ public:
     /// @brief [] (bracket) operator for board, allows for array-stule access
     /// @param index 
     /// @return a modifiable reference to the bitboard
-    inline u64& operator[](int index)
+    inline u32& operator[](int index)
      {  return bitboards[index]; }
     
     /// @brief [] (bracket) operator for const board, allows for array-stule access
     /// @param index 
     /// @return a value of the bitboard 
-    inline u64 operator[](int index) const
+    inline u32 operator[](int index) const
      {  return bitboards[index]; }
 
     /// @brief gets the side to move
@@ -311,7 +327,7 @@ public:
             else if (token == '/') ;
             else
             {
-                u64& bitboard = [&]() -> u64&
+                u32& bitboard = [&]() -> u32&
                     {
                         switch (token)
                         {
@@ -322,7 +338,7 @@ public:
                         }
                         return bitboards[0];
                     }();
-                bitboard |= 1ULL << index;
+                bitboard |= 1ULL << indexto32(index);
                 index++;
             }
             strpos++;
@@ -344,16 +360,17 @@ public:
         for (int i = 0; i < 64; i++)
         {
             int j = 0;
-            for (j; j < 4; j++)
-            {
-                // find if there is a piece on the square
-                if (bitboards[j] & (1ULL << i))
+            if ((i + ((i/8)%2)) % 2)
+                for (j; j < 4; j++)
                 {
-                    board += pieces[j];
-                    break;
-                }   
-            }
-            
+                    // find if there is a piece on the square
+                    if (bitboards[j] & (1ULL << indexto32(i)))
+                    {
+                        board += pieces[j];
+                        break;
+                    }   
+                }
+            else board += ' ';
             // if there is not a piece, add a space
             if (j==4) board += ((i/8 + i) % 2) ? ' ' : ' ' ;
 
@@ -471,22 +488,23 @@ constexpr u64 RANK_1 = 18374686479671623680ULL;
 
 /// @brief silent moves table
 /// @note formatted as {white, black, king}
-u64 silent_table[3][64];
+u32 silent_table[3][32]{0UL};
 
 /// @brief capture table
 /// @note formatted as {white, black, king}
-u64 capture_table[3][64]; 
+u32 capture_table[3][32]{0UL}; 
 
 /// @brief initialize move table
 void init_move_table()
 {
+    u64 temp_table[3][64];
     for (int i = 0; i < 64; i++)
     {
         u64 pos = 1ULL << i;
         u64 table = 0ULL;
         if (pos & ~A_FILE & ~RANK_8) table |= 1ULL << (i - 9);
         if (pos & ~H_FILE & ~RANK_8) table |= 1ULL << (i - 7);
-        silent_table[0][i] = table;
+        temp_table[0][i] = table;
     }
     for (int i = 0; i < 64; i++)
     {
@@ -494,11 +512,26 @@ void init_move_table()
         u64 table = 0ULL;
         if (pos & ~A_FILE & ~RANK_1) table |= 1ULL << (i + 7);
         if (pos & ~H_FILE & ~RANK_1) table |= 1ULL << (i + 9);
-        silent_table[1][i] = table;
+        temp_table[1][i] = table;
     }
     for (int i = 0; i < 64; i++)
     {
-        silent_table[2][i] = silent_table[0][i] | silent_table[1][i];
+        temp_table[2][i] = temp_table[0][i] | temp_table[1][i];
+    }
+
+    for (int j = 0; j < 3; j++)
+    {
+        for (int i = 0; i < 32; i++)
+        {
+            silent_table[j][i] = 0UL;
+            for (int k = 0; k < 32; k++)
+            {
+                if (temp_table[j][indexto64(i)] & (1ULL << indexto64(k)))
+                {
+                    silent_table[j][i] |= 1UL << k;
+                }
+            } 
+        }
     }
 
     for (int i = 0; i < 64; i++)
@@ -507,7 +540,7 @@ void init_move_table()
         u64 table = 0ULL;
         if (pos & ~(A_FILE | B_FILE | RANK_8 | RANK_7)) table |= 1ULL << (i - 18);
         if (pos & ~(H_FILE | G_FILE | RANK_8 | RANK_7)) table |= 1ULL << (i - 14);
-        capture_table[0][i] = table;
+        temp_table[0][i] = table;
     }
     for (int i = 0; i < 64; i++)
     {
@@ -515,11 +548,25 @@ void init_move_table()
         u64 table = 0ULL;
         if (pos & ~(A_FILE | B_FILE | RANK_2 | RANK_1)) table |= 1ULL << (i + 14);
         if (pos & ~(H_FILE | G_FILE | RANK_2 | RANK_1)) table |= 1ULL << (i + 18);
-        capture_table[1][i] = table;
+        temp_table[1][i] = table;
     }
     for (int i = 0; i < 64; i++)
     {
-        capture_table[2][i] = capture_table[0][i] | capture_table[1][i];
+        temp_table[2][i] = temp_table[0][i] | temp_table[1][i];
+    }
+    for (int j = 0; j < 3; j++)
+    {
+        for (int i = 0; i < 32; i++)
+        {
+            capture_table[j][i] = 0UL;
+            for (int k = 0; k < 32; k++)
+            {
+                if (temp_table[j][indexto64(i)] & (1ULL << indexto64(k)))
+                {
+                    capture_table[j][i] |= 1UL << k;
+                }
+            }
+        }
     }
 }
 
@@ -560,18 +607,18 @@ public:
         // init constants
         const int aside = (bd.get_side()) ? 0 : 2;
         const int dside = (bd.get_side()) ? 2 : 0;
-        const u64 defending_occ = bd[0 + dside] | bd[1 + dside];
-        const u64 attacking_occ = bd[0 + aside] | bd[1 + aside];
-        const u64 all_occ = defending_occ | attacking_occ;
+        const u32 defending_occ = bd[0 + dside] | bd[1 + dside];
+        const u32 attacking_occ = bd[0 + aside] | bd[1 + aside];
+        const u32 all_occ = defending_occ | attacking_occ;
 
         // create man moves
-        u64 bb = (1ULL << square) & bd[aside];
+        u32 bb = (1UL << square) & bd[aside];
         while (bb)
         {
             // lookup attack value
             const int start = square;
             bb = pop_bit(bb, start);
-            u64 att = capture_table[!(bd.get_side())][start];
+            u32 att = capture_table[!(bd.get_side())][start];
 
             // go through attacks and parse
             while (att)
@@ -581,14 +628,14 @@ public:
                 att = pop_bit(att, end);
 
                 // parse move if it captures a piece and moves to an available square
-                if (((1ULL << end) & ~all_occ) && ((1ULL << ((start+end) / 2)) & defending_occ)) 
+                if (((1UL << end) & ~all_occ) && ((1UL << indexto32((indexto64(start) + indexto64(end)) / 2)) & defending_occ)) 
                 {
                     // make a partial move and recursively find next captures
                     _move_stack.make_partial_move(Move_Wrapper(start,end));
                     std::vector<Move_Wrapper> temp = get_captures(end);
 
                     // if there are no future captures, continue
-                    if (temp.size() == 0 || end / 8 == 0 || end / 8 == 7) moves.push_back(Move_Wrapper(start,end));
+                    if (temp.size() == 0 || end / 4 == 0 || end / 4 == 7) moves.push_back(Move_Wrapper(start,end));
 
                     // else concatenate the future moves to the current ones
                     else for (Move_Wrapper mw : temp)
@@ -604,13 +651,13 @@ public:
         }
 
         // create king moves
-        bb = (1ULL << square) & bd[aside+1];
+        bb = (1UL << square) & bd[aside+1];
         while (bb)
         {
             // lookup attack value
             const int start = square;
             bb = pop_bit(bb, start);
-            u64 att = capture_table[2][start];
+            u32 att = capture_table[2][start];
             
             // go through attacks and parse
             while (att)
@@ -620,7 +667,7 @@ public:
                 att = pop_bit(att, end);
 
                 // parse move if it captures a piece and moves to an available square
-                if (((1ULL << end) & ~all_occ) && ((1ULL << ((start+end) / 2)) & defending_occ)) 
+                if (((1UL << end) & ~all_occ) && ((1UL << indexto32((indexto64(start) + indexto64(end)) / 2)) & defending_occ)) 
                 {
                     // make a partial move and recursively find next captures
                     _move_stack.make_partial_move(Move_Wrapper(start,end));
@@ -656,7 +703,7 @@ public:
         std::vector<Move_Wrapper> newmoves;
 
         // go through squares and find captures
-        for (int i = 0; i < 64; i++)
+        for (int i = 0; i < 32; i++)
         {
             // get captures on that square
             newmoves = get_captures(i);
@@ -681,19 +728,19 @@ public:
         // create helpful constants
         const int aside = (_bd.get_side()) ? 0 : 2;
         const int dside = (_bd.get_side()) ? 2 : 0;
-        const u64 defending_occ = _bd[0 + dside] | _bd[1 + dside];
-        const u64 attacking_occ = _bd[0 + aside] | _bd[1 + aside];
-        const u64 all_occ = defending_occ | attacking_occ;
+        const u32 defending_occ = _bd[0 + dside] | _bd[1 + dside];
+        const u32 attacking_occ = _bd[0 + aside] | _bd[1 + aside];
+        const u32 all_occ = defending_occ | attacking_occ;
 
         // check man bitboard
-        u64 bb = _bd[aside];
+        u32 bb = _bd[aside];
         while (bb)
         {
             // pop the least significant bit and use it
             // to look up the move value
             int start = LSB_index(bb);
             bb = pop_bit(bb, start);
-            u64 att = silent_table[!(_bd.get_side())][start];
+            u32 att = silent_table[!(_bd.get_side())][start];
 
             // parse the moves
             while (att)
@@ -703,7 +750,7 @@ public:
                 att = pop_bit(att, end);
 
                 // if the end square is not occupied, consider it valid
-                if ((1ULL << end) & ~all_occ) moves.push_back(Move_Wrapper(start,end));
+                if ((1UL << end) & ~all_occ) moves.push_back(Move_Wrapper(start,end));
             }
         }
         
@@ -715,7 +762,7 @@ public:
             // to look up the move value
             int start = LSB_index(bb);
             bb = pop_bit(bb, start);
-            u64 att = silent_table[2][start];
+            u32 att = silent_table[2][start];
 
             // parse the moves
             while (att)
@@ -725,7 +772,7 @@ public:
                 att = pop_bit(att, end);
 
                 // if the end square is not occupied, consider it valid
-                if ((1ULL << end) & ~all_occ) moves.push_back(Move_Wrapper(start,end));
+                if ((1UL << end) & ~all_occ) moves.push_back(Move_Wrapper(start,end));
             }
         }
 
@@ -766,7 +813,7 @@ namespace tt_util
 {
 
 /// @brief hash keys for table
-u64 hash_keys[4][64];
+u64 hash_keys[4][32];
 
 /// @brief initializing method to generate hash keys
 void generate_hash_keys()
@@ -787,8 +834,8 @@ void generate_hash_keys()
 /// @return the hash key
 static inline u64 get_key(Board& bd)
 {
-    u64 cpy[4] = {bd[0], bd[1], bd[2], bd[3]};
-    u64 key = 0ULL;
+    u32 cpy[4] = {bd[0], bd[1], bd[2], bd[3]};
+    u32 key = 0ULL;
     for (int i = 0; i < 4;  i++)
     {
         while (cpy[i])
@@ -827,12 +874,12 @@ private:
     std::array<TT_Entry, tablesize/sizeof(TT_Entry)> _table;
 
     /// @brief
-    const u64 length{tablesize/sizeof(TT_Entry)};
+    const size_t length{tablesize/sizeof(TT_Entry)};
 
     /// @brief helper function to find the index in which the entry is stored
     /// @param tte 
     /// @return the index
-    inline u64 get_index(const u64 key)
+    inline size_t get_index(const u64 key)
      {  return key % length;  }
 
 public:
@@ -907,7 +954,7 @@ constexpr int piece_values[4]
 static inline int eval(const Board& bd)
 {
     // load bitboards into temp values
-    u64 pieces[4] = {bd[0], bd[1], bd[2], bd[3]};
+    u32 pieces[4] = {bd[0], bd[1], bd[2], bd[3]};
 
     // init value
     int val = 0;
