@@ -19,15 +19,20 @@ namespace Bob_checkers
 /// @brief define the bitboard type
 typedef unsigned long int u32;
 
-
-/// @brief define the u64
+/// @brief define the 64-bit type
 typedef unsigned long long u64;
 
+/// @brief converts a 32-bit index to a 64-bit index
+/// @param index 
+/// @return a 64-bit index
 inline int indexto64(int index)
 {
     return (index * 2) + !((index/4)%2);
 }
 
+/// @brief converts a 64-bit index to a 32-bit index
+/// @param index 
+/// @return a 32-bit index
 inline int indexto32(int index)
 {
     return ((index) / 2);
@@ -129,12 +134,15 @@ public:
     /// @brief the vector containing Move_Wrapper moves
     std::vector<int> _move;
 
+    /// @brief sort value
+    int _hvalue{0};
+
     /// @brief default constructor for Move_Wrapper
     Move_Wrapper() {}
 
     /// @brief copy constructor for Move_Wrapper
     /// @param other 
-    Move_Wrapper(const Move_Wrapper& other) : _move{std::move(other._move)} {}  
+    Move_Wrapper(const Move_Wrapper& other) : _move{std::move(other._move)}, _hvalue{other._hvalue} {}  
 
     /// @brief varaidic template constructor for Move_Wrapper
     /// @tparam ...params 
@@ -153,6 +161,16 @@ public:
         }
         return std::forward<std::string>(result);
     }
+
+    inline bool operator<(const Move_Wrapper& other)
+    {
+        return this->_hvalue < other._hvalue;
+    }
+
+    inline bool operator>(const Move_Wrapper& other)
+    {
+        return this->_hvalue > other._hvalue;
+    }
 };
 
 /// @brief main board class
@@ -166,6 +184,7 @@ private:
 
     /// @brief contains the side to move. 1 and 0 for white and black, respectively.
     unsigned int side_to_move;
+
 
     /// @brief executes one jump of the move
     /// @param square1 the origin square
@@ -458,6 +477,10 @@ public:
 
 /*      drivers         */
 
+/// @brief evaluation namespace
+namespace evaluation
+{ static inline int heuristic(int piece, const Move_Wrapper& mv); }
+
 /// @brief move generation namespace
 namespace move_generator
 {
@@ -593,7 +616,6 @@ public:
     Move_Generator(Board& bd): _move_stack{bd}, _bd{bd} {}
 
     /// @brief get captures on a square
-    /// @param bd 
     /// @param square 
     /// @return a vector of move_wrappers
     inline std::vector<Move_Wrapper> get_captures(const int square)
@@ -694,7 +716,6 @@ public:
     }
 
     /// @brief gets all captures
-    /// @param bd 
     /// @return a vector of move_wrappers
     inline std::vector<Move_Wrapper> get_all_captures()
     {
@@ -708,9 +729,19 @@ public:
             // get captures on that square
             newmoves = get_captures(i);
 
+            const int piece = [&]() -> int 
+                {
+                    if (_bd[0] & (1UL << i)) return 0;
+                    if (_bd[1] & (1UL << i)) return 1;
+                    if (_bd[2] & (1UL << i)) return 2;
+                    if (_bd[3] & (1UL << i)) return 3;
+                    return 0;
+                }();
+
             // add all new moves to the final vector
             for (Move_Wrapper mw: newmoves)
-             {  moves.push_back(std::forward<Move_Wrapper>(mw)); }
+             {  moves.push_back(std::forward<Move_Wrapper>(mw)); 
+                moves.back()._hvalue = evaluation::heuristic(piece, moves.back()) * moves.back()._move.size(); }
         }
 
         // return the vector
@@ -718,7 +749,6 @@ public:
     }
 
     /// @brief gets all silent moves
-    /// @param bd 
     /// @return a vector of move_wrappers
     inline std::vector<Move_Wrapper> get_silents()
     {
@@ -750,7 +780,9 @@ public:
                 att = pop_bit(att, end);
 
                 // if the end square is not occupied, consider it valid
-                if ((1UL << end) & ~all_occ) moves.push_back(Move_Wrapper(start,end));
+                if ((1UL << end) & ~all_occ) 
+                 {  moves.push_back(Move_Wrapper(start,end));
+                    moves.back()._hvalue = evaluation::heuristic(aside, moves.back()); }
             }
         }
         
@@ -772,7 +804,9 @@ public:
                 att = pop_bit(att, end);
 
                 // if the end square is not occupied, consider it valid
-                if ((1UL << end) & ~all_occ) moves.push_back(Move_Wrapper(start,end));
+                if ((1UL << end) & ~all_occ) 
+                 {  moves.push_back(Move_Wrapper(start,end));
+                    moves.back()._hvalue = evaluation::heuristic(aside + 1, moves.back()); }
             }
         }
 
@@ -799,6 +833,8 @@ public:
         // this ensures that if a capture is available, only captures will be considered
         if (moves.size() == 0) {moves = get_silents(); _captures_available = false;}
 
+        std::sort(moves.begin(), moves.end(), std::greater<>());
+
         // return the resultant vector
         return std::forward<std::vector<Move_Wrapper>>(moves);
 
@@ -822,7 +858,7 @@ void generate_hash_keys()
     std::uniform_int_distribution<u64> distribution(0ULL, 0xFFFFFFFFFFFFFFFFULL);
     for (int i = 0; i < 4; i++)
     {
-        for (int j = 0; j < 64; j++)
+        for (int j = 0; j < 32; j++)
         {
             hash_keys[i][j] = distribution(generator);
         }
@@ -835,7 +871,7 @@ void generate_hash_keys()
 static inline u64 get_key(Board& bd)
 {
     u32 cpy[4] = {bd[0], bd[1], bd[2], bd[3]};
-    u32 key = 0ULL;
+    u64 key = 0ULL;
     for (int i = 0; i < 4;  i++)
     {
         while (cpy[i])
@@ -849,21 +885,21 @@ static inline u64 get_key(Board& bd)
 } 
 
 /// @brief entry type enum
-enum tt_entry_type {EXACT, LBOUND, UBOUND, FAIL};
+enum tt_entry_type : char {EXACT, LBOUND, UBOUND, FAIL};
 
 /// @brief transposition table structure
 struct TT_Entry
 {
-    tt_entry_type _type;
     u64 _key{0ULL};
     int _value{0};
+    tt_entry_type _type;
 };
 
-/// @brief size of the transposition table, currently ~3.2 GB
+/// @brief size of the transposition table, currently ~2 GB
 constexpr size_t tablesize = sizeof(TT_Entry) * 131072;
 
 /// @brief failed entry constant
-constexpr TT_Entry failed_entry{FAIL, 0ULL, 0};
+constexpr TT_Entry failed_entry{0ULL, 0, FAIL};
 
 /// @brief transposition table class
 class Transposition_Table
@@ -914,27 +950,27 @@ namespace evaluation
 /// @brief man value constants
 constexpr int man_values[64] 
 {
-     0,  0,  0,  0,  0,  0,  0,  0,
-    24,  0, 10,  0,  8,  0,  9,  0,
-     0,  8,  0, 10,  0, 10,  0, 24,
-     3,  0,  4,  0,  5,  0,  1,  0,
-     0,  2,  0,  13,  0,  8,  0,  1,
-     1,  0,  2,  0,  1,  0,  0,  0,
-     0, -1,  0,  7,  0,  9,  0, 25,
-    -5,  0, 23,  0, 10,  0, 32,  0
+         0,      0,      0,      0,
+    24,     10,      8,      9,    
+         8,     10,     10,     24,
+     3,      4,      5,      1,    
+         2,     13,      8,     1,
+     1,      2,      1,      0,    
+        -1,      7,      9,     25,
+    -5,     23,     10,     32    
 };
 
 /// @brief king value constants
-constexpr int king_values[64] 
+constexpr int king_values[32] 
 {
-     0, -7,  0, -1,  0, -3,  0,-10,
-    -5,  0,  0,  0, -1,  0, -1,  0,
-     0,  1,  0, 10,  0,  8,  0, -1,
-    -1,  0, 10,  0, 11,  0,  1,  0,
-     0,  2,  0, 11,  0, 10,  0, -1,
-    -1,  0,  8,  0,  10, 0,  0,  0,
-     0, -1,  0, -1,  0, -1,  0, -1,
-   -10,  0,  0,  0, -1,  0, -7,  0
+        -7,     -1,     -3,    -10,
+    -5,      0,     -1,     -1,   
+         1,     10,      8,     -1,
+    -1,     10,     11,      1,    
+         2,     11,     10,     -1,
+    -1,      8,      10,     0,    
+        -1,     -1,     -1,     -1,
+   -10,       0,     -1,     -7    
 };
 
 /// @brief piece value constants
@@ -945,8 +981,27 @@ constexpr int piece_values[4]
 /// @param square 
 /// @return a flipped square
 
-#define flip_square(square) (63 - square)
+#define flip_square(square) (31 - square)
 
+/// @brief finds the heuristic of the move
+/// @param piece 
+/// @param mv 
+/// @return an int
+static inline int heuristic(int piece, const Move_Wrapper& mv)
+{
+    return [&]() -> int 
+        {
+            switch (piece)
+            {
+            case 0: return  man_values[mv._move.back()] -   man_values[mv._move.front()];
+            case 1: return king_values[mv._move.back()] -  king_values[mv._move.front()]; 
+
+            case 2: return  man_values[flip_square(mv._move.back())] -   man_values[flip_square(mv._move.front())];
+            case 3: return king_values[flip_square(mv._move.back())] -  king_values[flip_square(mv._move.front())]; 
+            default: return 0;
+            }
+        }();
+}
 
 /// @brief evaluates the position
 /// @param bd 
@@ -1002,7 +1057,7 @@ struct Move_Info
     Move_Wrapper _mvwrpr;
 
     /// @brief the count of total nodes checked
-    int _node_count;
+    size_t _node_count;
 
     /// @brief the calculated value of the board + move
     int _value;
@@ -1051,12 +1106,14 @@ private:
     const int _depth{0};
 
     /// @brief the depth of quiescence
-    static const int quiescence_depth{2};
+    static const int quiescence_depth{3};
+
+    static constexpr int LMR_R{3};
 
     const int cut_depth{1000};
 
     /// @brief the total number of moves
-    int* _moves{nullptr};
+    size_t* _moves{nullptr};
 
     /// @brief the move that is being checked
     const Move_Wrapper _mvwrpr;
@@ -1078,7 +1135,7 @@ private:
         std::vector<Move_Wrapper> moveslist = mg();
         
         // return the value if node quiet or if depth = 0
-        if (depth == 0 || mg.captures_available())
+        if (depth == 0 || !mg.captures_available())
             return evaluation::eval(std::forward<Board&>(_this_stack.top())) * color; 
         
         // store the original alpha
@@ -1160,15 +1217,13 @@ private:
             (* Initial call for Player A's root node *)
             negamax(rootNode, depth, −∞, +∞, 1)
         */
-
-       
         
         move_generator::Move_Generator mg(_this_stack.top());
         std::vector<Move_Wrapper> moveslist = mg();
 
         if (depth <= cut_depth && !mg.captures_available() && can_cut)
         {
-            depth -= 2;
+            depth -= LMR_R;
             alpha = beta-1;
         }
 
@@ -1245,7 +1300,7 @@ public:
     /// @param mw 
     /// @param table
     Move_Evaluator(Board& bd, const int depth, Move_Wrapper mw, tt_util::Transposition_Table& table) : 
-        _this_stack{Board_Stack(bd)}, _depth{depth}, _moves{new int{0}}, _mvwrpr{std::move(mw)}, _table{table}, cut_depth{(depth-4)}
+        _this_stack{Board_Stack(bd)}, _depth{depth}, _moves{new size_t{0}}, _mvwrpr{std::move(mw)}, _table{table}, cut_depth{(depth-4)}
      {  _this_stack.make_move(mw); }
 
     /// @brief operator (), calculates value
@@ -1272,7 +1327,7 @@ inline Move_Info get_best_move(int depth, Board& bd, tt_util::Transposition_Tabl
     std::vector<Move_Info> calculated_list;
 
     // create node counter
-    int totalnodes = 0;
+    size_t totalnodes = 0;
 
     // calculate all moves and accumulate node count into `totalnodes`
     for (Move_Wrapper mw : moveslist)

@@ -14,8 +14,8 @@ namespace PCI
 /// @brief the main PCI board
 Board _MAIN_BOARD;
 
+/// @brief main transposition table
 tt_util::Transposition_Table _MAIN_TABLE;
-
 
 /// @brief parses a list of moves and applies it
 /// @param input 
@@ -58,6 +58,9 @@ void parse_moves(std::string&& input)
     parse_moves(input.substr(next_space+1));
 }
 
+/// @brief parses an input string
+/// @param input 
+/// @return whether to break or not
 int parse_input(std::string&& input)
 {
     // create a character pointer

@@ -14,7 +14,6 @@ void setup()
 int main()
 {
     
-    
     setup();
     
     Bob_checkers::PCI::PCI_loop();
