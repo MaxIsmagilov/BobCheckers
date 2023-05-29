@@ -81,8 +81,7 @@ static inline u32 push_bit(u32 board, int square) { return (board | (1UL << squa
 /// @brief removes a bit from the bitboard
 /// @param board 
 /// @param square 
-/// @return an updated bitboard
-static inline u32 pop_bit(u32 board, int square) { return (board & ~(1UL << square));}
+static inline void pop_bit(u32& board, int square) { board &= ~(1UL << square);}
 
 /// @brief prints a bitboard
 /// @param bb 
@@ -162,15 +161,11 @@ public:
         return std::forward<std::string>(result);
     }
 
-    inline bool operator<(const Move_Wrapper& other)
-    {
-        return this->_hvalue < other._hvalue;
-    }
+    const inline bool operator<(const Move_Wrapper& other) const
+     {  return this->_hvalue < other._hvalue;   }
 
-    inline bool operator>(const Move_Wrapper& other)
-    {
-        return this->_hvalue > other._hvalue;
-    }
+    const inline bool operator>(const Move_Wrapper& other) const
+     {  return this->_hvalue > other._hvalue;   }
 };
 
 /// @brief main board class
@@ -184,7 +179,6 @@ private:
 
     /// @brief contains the side to move. 1 and 0 for white and black, respectively.
     unsigned int side_to_move;
-
 
     /// @brief executes one jump of the move
     /// @param square1 the origin square
@@ -214,6 +208,7 @@ private:
                 piece = 1;
             promote = (piece == 0 && (indexto64(square2) / 8 == 0));
         }
+
         // for black
         else 
         {
@@ -236,10 +231,10 @@ private:
         // remove any possible captured pieces if relevant
         if (capture) 
         {
-            bitboards[0] &= ~(1ULL << indexto32((indexto64(square1) + indexto64(square2))/2));
-            bitboards[1] &= ~(1ULL << indexto32((indexto64(square1) + indexto64(square2))/2));
-            bitboards[2] &= ~(1ULL << indexto32((indexto64(square1) + indexto64(square2))/2));
-            bitboards[3] &= ~(1ULL << indexto32((indexto64(square1) + indexto64(square2))/2));
+            bitboards[0] &= ~(1ULL << ((indexto64(square1) + indexto64(square2))/4));
+            bitboards[1] &= ~(1ULL << ((indexto64(square1) + indexto64(square2))/4));
+            bitboards[2] &= ~(1ULL << ((indexto64(square1) + indexto64(square2))/4));
+            bitboards[3] &= ~(1ULL << ((indexto64(square1) + indexto64(square2))/4));
         }
     }
 
@@ -265,7 +260,7 @@ public:
      {  bitboards = {other[0], other[1], other[2], other[3]}; 
         side_to_move = other.get_side(); }
 
-    /// @brief [] (bracket) operator for board, allows for array-stule access
+    /// @brief [] (bracket) operator for board, allows for array-style access
     /// @param index 
     /// @return a modifiable reference to the bitboard
     inline u32& operator[](int index)
@@ -639,7 +634,7 @@ public:
         {
             // lookup attack value
             const int start = square;
-            bb = pop_bit(bb, start);
+            pop_bit(bb, start);
             u32 att = capture_table[!(bd.get_side())][start];
 
             // go through attacks and parse
@@ -647,7 +642,7 @@ public:
             {
                 // get a possible end square
                 const int end = LSB_index(att);
-                att = pop_bit(att, end);
+                pop_bit(att, end);
 
                 // parse move if it captures a piece and moves to an available square
                 if (((1UL << end) & ~all_occ) && ((1UL << indexto32((indexto64(start) + indexto64(end)) / 2)) & defending_occ)) 
@@ -678,7 +673,7 @@ public:
         {
             // lookup attack value
             const int start = square;
-            bb = pop_bit(bb, start);
+            pop_bit(bb, start);
             u32 att = capture_table[2][start];
             
             // go through attacks and parse
@@ -686,7 +681,7 @@ public:
             {
                 // get a possible end square
                 const int end = LSB_index(att);
-                att = pop_bit(att, end);
+                pop_bit(att, end);
 
                 // parse move if it captures a piece and moves to an available square
                 if (((1UL << end) & ~all_occ) && ((1UL << indexto32((indexto64(start) + indexto64(end)) / 2)) & defending_occ)) 
@@ -769,7 +764,7 @@ public:
             // pop the least significant bit and use it
             // to look up the move value
             int start = LSB_index(bb);
-            bb = pop_bit(bb, start);
+            pop_bit(bb, start);
             u32 att = silent_table[!(_bd.get_side())][start];
 
             // parse the moves
@@ -777,7 +772,7 @@ public:
             {
                 // find the end square
                 int end = LSB_index(att);
-                att = pop_bit(att, end);
+                pop_bit(att, end);
 
                 // if the end square is not occupied, consider it valid
                 if ((1UL << end) & ~all_occ) 
@@ -793,7 +788,7 @@ public:
             // pop the least significant bit and use it
             // to look up the move value
             int start = LSB_index(bb);
-            bb = pop_bit(bb, start);
+            pop_bit(bb, start);
             u32 att = silent_table[2][start];
 
             // parse the moves
@@ -801,7 +796,7 @@ public:
             {
                 // find the end square
                 int end = LSB_index(att);
-                att = pop_bit(att, end);
+                pop_bit(att, end);
 
                 // if the end square is not occupied, consider it valid
                 if ((1UL << end) & ~all_occ) 
@@ -868,7 +863,7 @@ void generate_hash_keys()
 /// @brief calculates the key for a board
 /// @param bd 
 /// @return the hash key
-static inline u64 get_key(Board& bd)
+const static inline u64 get_key(const Board& bd) 
 {
     u32 cpy[4] = {bd[0], bd[1], bd[2], bd[3]};
     u64 key = 0ULL;
@@ -877,7 +872,7 @@ static inline u64 get_key(Board& bd)
         while (cpy[i])
         {
             int j = LSB_index(cpy[i]);
-            cpy[i] = pop_bit(cpy[i], j);
+            pop_bit(cpy[i], j);
             key ^= hash_keys[i][j];
         }
     }
@@ -915,7 +910,7 @@ private:
     /// @brief helper function to find the index in which the entry is stored
     /// @param tte 
     /// @return the index
-    inline size_t get_index(const u64 key)
+    const inline size_t get_index(const u64 key) const
      {  return key % length;  }
 
 public:
@@ -948,7 +943,7 @@ namespace evaluation
 {
 
 /// @brief man value constants
-constexpr int man_values[64] 
+constexpr int man_values[32] 
 {
          0,      0,      0,      0,
     24,     10,      8,      9,    
@@ -980,7 +975,6 @@ constexpr int piece_values[4]
 /// @brief flips the square
 /// @param square 
 /// @return a flipped square
-
 #define flip_square(square) (31 - square)
 
 /// @brief finds the heuristic of the move
@@ -1021,7 +1015,7 @@ static inline int eval(const Board& bd)
         while (pieces[i])
         {
             int square = LSB_index(pieces[i]);
-            pieces[i] = pop_bit(pieces[i], square);
+            pop_bit(pieces[i], square);
             val += piece_values[i];
             if (i == 0)
                 val += man_values[square];
@@ -1065,18 +1059,14 @@ struct Move_Info
     /// @brief overriden > operator
     /// @param other 
     /// @return the value of the > operator on the `value` variables of each
-    inline bool operator>(const Move_Info& other)
-    {
-        return this->_value > other._value;
-    }
+    const inline bool operator>(const Move_Info& other) const
+     {  return this->_value > other._value; }
 
     /// @brief overriden < operator
     /// @param other 
     /// @return the value of the < operator on the `value` variables of each
-    inline bool operator<(const Move_Info& other)
-    {
-        return this->_value < other._value;
-    }
+    const inline bool operator<(const Move_Info& other) const
+     {  return this->_value < other._value; }
 
     /// @brief represents the Move_Wrapper as a string
     /// @return a std::string
@@ -1106,9 +1096,11 @@ private:
     const int _depth{0};
 
     /// @brief the depth of quiescence
-    static const int quiescence_depth{3};
+    static constexpr int quiescence_depth{3};
 
-    static constexpr int LMR_R{3};
+    static constexpr int LMR_R{2};
+
+    static constexpr int start_reduction{4};
 
     const int cut_depth{1000};
 
@@ -1195,7 +1187,7 @@ private:
     /// @param beta 
     /// @return the result of the step of negamax
     /// @note called recursively
-    inline int negamax(int depth, int alpha, int beta, int color, bool can_cut)
+    inline int negamax(int depth, int alpha, int beta, const int color, const bool cut)
     {
         /* pseudocode for  the negamax algorithm */
 
@@ -1221,13 +1213,10 @@ private:
         move_generator::Move_Generator mg(_this_stack.top());
         std::vector<Move_Wrapper> moveslist = mg();
 
-        if (depth <= cut_depth && !mg.captures_available() && can_cut)
-        {
-            depth -= LMR_R;
-            alpha = beta-1;
-        }
+        if (depth <= cut_depth && !mg.captures_available() && cut)
+         {  depth -= LMR_R; }
 
-        can_cut = false;
+        bool can_cut = false;
 
         // increment total nodes
         (*_moves)++;
@@ -1268,7 +1257,16 @@ private:
         for (Move_Wrapper mw: moveslist)
         {
             _this_stack.make_move(mw);
-            value = std::max(value, -negamax(depth-1, -beta, -alpha, -color, can_cut));
+            if (!can_cut)
+                value = std::max(value, -negamax(depth-1, -beta, -alpha, -color, can_cut));
+            else
+            {
+                value = std::max(value, -negamax(depth-1, -beta, -alpha, -color, can_cut));
+                if (alpha < value && value < beta)
+                {
+                    value = std::max(value, -negamax(depth-1, -beta, -value, -color, can_cut));
+                }
+            }
             alpha = std::max(value, alpha);
             _this_stack.unmake_move();
             can_cut = true;
@@ -1300,7 +1298,7 @@ public:
     /// @param mw 
     /// @param table
     Move_Evaluator(Board& bd, const int depth, Move_Wrapper mw, tt_util::Transposition_Table& table) : 
-        _this_stack{Board_Stack(bd)}, _depth{depth}, _moves{new size_t{0}}, _mvwrpr{std::move(mw)}, _table{table}, cut_depth{(depth-4)}
+        _this_stack{Board_Stack(bd)}, _depth{depth}, _moves{new size_t{0}}, _mvwrpr{std::move(mw)}, _table{table}, cut_depth{(depth-start_reduction)}
      {  _this_stack.make_move(mw); }
 
     /// @brief operator (), calculates value

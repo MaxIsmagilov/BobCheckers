@@ -3,7 +3,6 @@
 #include "BobCheckersAPI.hh"
 #include <iostream>
 #include <chrono>
-#include <thread>
 
 void setup()
 {
