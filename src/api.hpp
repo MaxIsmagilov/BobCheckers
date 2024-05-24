@@ -3,10 +3,12 @@
 #include "algorithm.hpp"
 #include "move.hpp"
 
-namespace BobCheckers {
+namespace BobCheckers
+{
 
-class Game {
-public:
+class Game
+{
+ public:
   Game() = default;
 
   /// @brief starts the game loop for the engin
@@ -21,19 +23,19 @@ public:
   /// @param flag
   void set_debug(bool flag);
 
-private:
-  void load_pos(const std::string &fen);
+ private:
+  void load_pos(const std::string& fen);
 
-  void make_move(const Move &mv);
+  void make_move(const Move& mv);
 
   std::tuple<Move, int, u64> search_depth(int depth);
 
-  void parse_input(const std::string &input);
+  void parse_input(const std::string& input);
 
-  Board main_board{};
+  Board              main_board{};
   TranspositionTable tt{};
 
   bool debug_enabled{false};
 };
 
-} // namespace BobCheckers
+}  // namespace BobCheckers

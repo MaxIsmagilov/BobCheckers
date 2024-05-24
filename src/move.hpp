@@ -1,14 +1,17 @@
 #pragma once
 
-#include "utils.hpp"
 #include <string>
 #include <vector>
 
-namespace BobCheckers {
+#include "utils.hpp"
+
+namespace BobCheckers
+{
 
 /// @brief contains a move via a vector of the squares to move to
-class Move {
-public:
+class Move
+{
+ public:
   /// @brief the vector containing Move moves
   std::vector<u32> move_vec;
 
@@ -20,7 +23,7 @@ public:
 
   /// @brief copy constructor for Move
   /// @param other
-  Move(const Move &other);
+  Move(const Move& other);
 
   /// @brief varaidic template constructor for Move
   /// @tparam ...params
@@ -30,7 +33,7 @@ public:
 
   /// @brief constructs a move from a name
   /// @param movename
-  Move(const std::string &movename);
+  Move(const std::string& movename);
 
   /// @brief formats the move for output
   /// @return a std::string coordinate move, eg. e3d4
@@ -38,13 +41,13 @@ public:
 
   std::string print_move_info() const;
 
-  bool operator<(const Move &other) const;
+  bool operator<(const Move& other) const;
 
-  bool operator>(const Move &other) const;
+  bool operator>(const Move& other) const;
 
-  void operator=(const Move &other);
+  void operator=(const Move& other);
 
-  static std::string print_move_list(const std::vector<Move> &moves);
+  static std::string print_move_list(const std::vector<Move>& moves);
 };
 
-} // namespace BobCheckers
+}  // namespace BobCheckers

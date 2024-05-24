@@ -1,35 +1,37 @@
 #pragma once
 
-#include "move.hpp"
-#include "utils.hpp"
 #include <array>
 #include <string>
 
-namespace BobCheckers {
+#include "move.hpp"
+#include "utils.hpp"
+
+namespace BobCheckers
+{
 
 /// @brief main board class
-class Board {
-
-public:
+class Board
+{
+ public:
   /// @brief default constructor for Board
   Board();
 
   /// @brief const copy constructor for Board
   /// @param other
-  Board(const Board &other);
+  Board(const Board& other);
 
   /// @brief default constructor for Board
   /// @param other
-  Board(Board &&other);
+  Board(Board&& other);
 
   /// @brief assignment copy operator
   /// @param other
-  void operator=(const Board &other);
+  void operator=(const Board& other);
 
   /// @brief [] (bracket) operator for board, allows for array-style access
   /// @param index
   /// @return a modifiable reference to the bitboard
-  u32 &operator[](int index);
+  u32& operator[](int index);
 
   /// @brief [] (bracket) operator for const board, allows for array-style
   /// access
@@ -55,11 +57,11 @@ public:
 
   /// @brief executes a move
   /// @param mv
-  void move(const Move &mv);
+  void move(const Move& mv);
 
   /// @brief executes a move
   /// @param mv
-  void move(Move &&mv);
+  void move(Move&& mv);
 
   /// @brief loads a position
   /// @param position
@@ -72,7 +74,7 @@ public:
   /// @return a std::string representation of the board
   std::string print_board() const;
 
-private:
+ private:
   /// @brief std::array of the bitboards,
   /// is formatted as {white men, white kings, black men, black kings}
   std::array<u32, 4> bitboards;
@@ -87,4 +89,4 @@ private:
   void single_move(u32 square1, u32 square2);
 };
 
-} // namespace BobCheckers
+}  // namespace BobCheckers

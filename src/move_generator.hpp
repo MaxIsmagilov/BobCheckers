@@ -1,24 +1,27 @@
 #pragma once
 
-#include "board_stack.hpp"
-#include "utils.hpp"
 #include <vector>
 
-namespace BobCheckers {
+#include "board_stack.hpp"
+#include "utils.hpp"
+
+namespace BobCheckers
+{
 
 /// @brief move generator function object
-class MoveGenerator {
-public:
+class MoveGenerator
+{
+ public:
   /// @brief initialize move table
   static void init_move_table();
 
   /// @brief constructor for move generator
   /// @param bd
-  MoveGenerator(Board &&bd);
+  MoveGenerator(Board&& bd);
 
   /// @brief constructor for move generator
   /// @param bd
-  MoveGenerator(Board &bd);
+  MoveGenerator(Board& bd);
 
   /// @brief get captures on a square
   /// @param square
@@ -41,7 +44,7 @@ public:
   /// @return a vector of moves
   std::vector<Move> operator()();
 
-private:
+ private:
   /// @brief the main boardstack
   BoardStack move_stack;
 
@@ -59,4 +62,4 @@ private:
   static u32 capture_table[3][32];
 };
 
-} // namespace BobCheckers
+}  // namespace BobCheckers

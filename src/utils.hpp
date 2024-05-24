@@ -2,7 +2,8 @@
 
 #include <string>
 
-namespace BobCheckers {
+namespace BobCheckers
+{
 
 /// @brief define the bitboard type
 typedef unsigned long int u32;
@@ -10,7 +11,8 @@ typedef unsigned long int u32;
 /// @brief define the 64-bit type
 typedef unsigned long long u64;
 
-namespace utils {
+namespace utils
+{
 
 /// @brief converts a 32-bit index to a 64-bit index
 /// @param index
@@ -91,13 +93,11 @@ enum square {
 };
 
 /// @brief coordinate strings
-const std::string coordinates[64] = {
-    "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", "a7", "b7", "c7",
-    "d7", "e7", "f7", "g7", "h7", "a6", "b6", "c6", "d6", "e6", "f6",
-    "g6", "h6", "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5", "a4",
-    "b4", "c4", "d4", "e4", "f4", "g4", "h4", "a3", "b3", "c3", "d3",
-    "e3", "f3", "g3", "h3", "a2", "b2", "c2", "d2", "e2", "f2", "g2",
-    "h2", "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"};
+const std::string coordinates[64] = {"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", "a7", "b7", "c7", "d7", "e7",
+                                     "f7", "g7", "h7", "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6", "a5", "b5",
+                                     "c5", "d5", "e5", "f5", "g5", "h5", "a4", "b4", "c4", "d4", "e4", "f4", "g4",
+                                     "h4", "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3", "a2", "b2", "c2", "d2",
+                                     "e2", "f2", "g2", "h2", "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"};
 
 /// @brief finds whether a bit exists at an index
 /// @param board
@@ -119,22 +119,22 @@ u32 pop_bit(u32 board, u32 square);
 /// @brief prints a bitboard
 /// @param bb
 /// @return a string
-std::string print_bitboard(const u32 &bb);
+std::string print_bitboard(const u32& bb);
 
 /// @brief counts the bits in a bitboard
 /// @param bitboard
 /// @return the number of bits
-u32 count_bits(const u32 &bitboard);
+u32 count_bits(const u32& bitboard);
 
 /// @brief  finds the index of the least significant bit
 /// @param test
 /// @return the index
-u32 LSB_index(const u32 &test);
+u32 LSB_index(const u32& test);
 
 /// @brief converts a coordinate to an index
 /// @param coordinate
 /// @return
-u32 coordinates_to_index(const std::string &coordinate);
+u32 coordinates_to_index(const std::string& coordinate);
 
 /// @brief 'a' file bitboard constant
 constexpr u64 A_FILE = 0x0101010101010101ULL;
@@ -160,5 +160,5 @@ constexpr u64 RANK_2 = 0xFF000000000000ULL;
 /// @brief first rank bitboard constant
 constexpr u64 RANK_1 = 0xFF00000000000000ULL;
 
-} // namespace utils
-} // namespace BobCheckers
+}  // namespace utils
+}  // namespace BobCheckers
