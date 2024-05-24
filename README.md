@@ -1,5 +1,7 @@
 # BobCheckers
 
+version 1.2.0
+
 BobCheckers is a (better than a certain other) [checkers](docs/CheckersRules.md) engine, designed to beat that certain other checkers engine. This engine is designed by Max Ismagilov.
 For the official Github repo, visit [go here](https://github.com/MaxIsmagilov/BobCheckers).
 
@@ -34,4 +36,4 @@ For the official Github repo, visit [go here](https://github.com/MaxIsmagilov/Bo
 1. download the relese
 2. make a folder called `build` inside this one and change to int
 3. run `cmake ../ && make`
-4. the execuatble will be at the path `build/src/BobCheckers_1.0.0`
+4. the execuatble will be at the path `build/src/BobCheckers_1_2_0`

@@ -66,5 +66,5 @@ INSTALL(EXPORT BobCheckersTargets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/BobCheckers
 )
 
-ADD_EXECUTABLE(BobCheckers_${PROJECT_VERSION} BobCheckers.cpp)
-TARGET_LINK_LIBRARIES(BobCheckers_${PROJECT_VERSION} BobCheckers::BobCheckers)
+ADD_EXECUTABLE(BobCheckers_1_2_0 BobCheckers.cpp)
+TARGET_LINK_LIBRARIES(BobCheckers_1_2_0 BobCheckers::BobCheckers)

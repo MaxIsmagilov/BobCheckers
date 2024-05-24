@@ -18,11 +18,11 @@ int main() {
 
   BobCheckers::Game game;
 
-  game.set_debug(true);
+  // game.set_debug(true);
 
-  game.play_game_at_depth(15);
+  // game.play_game_at_depth(15);
 
-  // game.join_loop();
+  game.join_loop();
 
   return 0;
 }
