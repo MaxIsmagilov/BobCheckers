@@ -171,7 +171,7 @@ std::vector<Move> MoveGenerator::get_all_captures() {
   std::vector<Move> newmoves;
 
   // go through squares and find captures
-  for (int i = 0; i < 32; i++) {
+  for (int i = 0; i < 32; ++i) {
     // get captures on that square
     newmoves = get_captures(i);
 

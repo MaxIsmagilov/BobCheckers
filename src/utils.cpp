@@ -15,7 +15,7 @@ u32 utils::pop_bit(u32 board, u32 square) { return board & ~(1UL << square); }
 
 std::string utils::print_bitboard(const u32& bb) {
   std::string str = "";
-  for (int i = 0; i < 32; i++) {
+  for (int i = 0; i < 32; ++i) {
     if (!((i / 4) % 2) && i % 4 == 0) str += "  ";
     str += (get_bit(bb, i)) ? '1' : '0';
     str += "   ";

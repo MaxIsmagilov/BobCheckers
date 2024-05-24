@@ -36,7 +36,7 @@ int Evaluator::eval(const Board& bd) {
   int val = 0;
 
   // go through all pieces
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 4; ++i) {
     // calculate each piece from a set's value and add it to the value variable
     while (pieces[i]) {
       int square = utils::LSB_index(pieces[i]);

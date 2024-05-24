@@ -16,7 +16,7 @@ Move::Move(const std::string& movename) : move_vec{} {
   // Convert UCI-like move notation to move_vec
   for (size_t i = 0; i < movename.length(); i += 2) {
     std::string coordinate = movename.substr(i, 2);
-    std::cout << utils::coordinates_to_index(coordinate) << std::endl;
+    // std::cout << utils::coordinates_to_index(coordinate) << std::endl;
     int index = utils::coordinates_to_index(coordinate);
     move_vec.push_back(index);
   }
@@ -38,7 +38,8 @@ std::string Move::print_move_info() const {
   for (int i : move_vec) {
     result += utils::coordinates[utils::indexto64(i)];
   }
-  result += " " + std::to_string(_hvalue);
+  result += " ";
+  result += std::to_string(_hvalue);
   return std::forward<std::string>(result);
 }
 

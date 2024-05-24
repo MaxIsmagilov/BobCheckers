@@ -18,7 +18,7 @@ void TTUtils::generate_hash_keys() {
 u64 TTUtils::get_key(const Board& bd) {
   u32 cpy[4] = {bd[0], bd[1], bd[2], bd[3]};
   u64 key    = 0ULL;
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 4; ++i) {
     while (cpy[i]) {
       int j  = utils::LSB_index(cpy[i]);
       cpy[i] = utils::pop_bit(cpy[i], j);

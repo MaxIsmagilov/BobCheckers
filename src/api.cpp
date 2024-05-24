@@ -38,7 +38,7 @@ void Game::play_game_at_depth(int depth) {
     if (!best_move.move_vec.empty()) {
       main_board.move(best_move);
     } else
-      break;
+      return;
     parse_input("printboard");
   } while (true);
 }
@@ -50,7 +50,7 @@ void Game::make_move(const Move& mv) { main_board.move(mv); }
 std::tuple<Move, int, u64> Game::search_depth(int depth) {
   Algorithm alg(main_board, tt);
   Move      best_move;
-  for (int i = 0; i < depth; ++i) {
+  for (int i = std::min(3, depth); i <= depth; ++i) {
     best_move = alg.search(i);
     if (debug_enabled)
       std::cout << "\tinfo: "

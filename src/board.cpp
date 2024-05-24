@@ -28,7 +28,7 @@ void Board::flip_side() { side_to_move ^= 1; }
 void Board::move(const Move& mv) {
   // just executes single moves one by one
   std::vector<u32> moves{std::move(mv.move_vec)};
-  for (u32 i = 0; i < moves.size() - 1; i++) {
+  for (u32 i = 0; i < moves.size() - 1; ++i) {
     single_move(moves[i], moves[i + 1]);
   }
   flip_side();
@@ -37,7 +37,7 @@ void Board::move(const Move& mv) {
 void Board::move(Move&& mv) {
   // just executes single moves one by one
   std::vector<u32> moves{std::move(mv.move_vec)};
-  for (u32 i = 0; i < moves.size() - 1; i++) {
+  for (u32 i = 0; i < moves.size() - 1; ++i) {
     single_move(moves[i], moves[i + 1]);
   }
   flip_side();
@@ -68,9 +68,9 @@ void Board::load_pos(std::string position) {
         return bitboards[0];
       }();
       bitboard |= 1ULL << utils::indexto32(index);
-      index++;
+      ++index;
     }
-    strpos++;
+    ++strpos;
   }
   side_to_move = (position[++strpos] == 'w');
 }
@@ -81,11 +81,11 @@ std::string Board::print_board() const {
   char board_repr[8][8] = {};
 
   // fill the board representation with empty squares first
-  for (int i = 0; i < 8; i++)
-    for (int j = 0; j < 8; j++) board_repr[i][j] = ' ';
+  for (int i = 0; i < 8; ++i)
+    for (int j = 0; j < 8; ++j) board_repr[i][j] = ' ';
 
   // fill the board representation
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 4; ++i) {
     u32 bitboard = bitboards[i];
     while (bitboard) {
       int index                        = utils::LSB_index(bitboard);
@@ -99,9 +99,9 @@ std::string Board::print_board() const {
   std::string board = "    a   b   c   d   e   f   g   h   \n  +---+---+---+---+---+---+---+---+\n";
 
   // add the board
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 8; ++i) {
     board += std::to_string(8 - i) + " ";
-    for (int j = 0; j < 8; j++) board += "| " + std::string(1, board_repr[i][j]) + " ";
+    for (int j = 0; j < 8; ++j) board += "| " + std::string(1, board_repr[i][j]) + " ";
     board += "|\n  +---+---+---+---+---+---+---+---+\n";
   }
 

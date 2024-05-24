@@ -29,7 +29,7 @@ ADD_LIBRARY(BobCheckersObjects OBJECT
 )
 
 TARGET_COMPILE_OPTIONS(
-    BobCheckersObjects PUBLIC "-std=c++20" "-Wall" "-Wextra" "-Wpedantic"  "-Werror" "-std=c++20" 
+    BobCheckersObjects PUBLIC "-std=c++20" "-O3" "-Wall" "-Wextra" "-Wpedantic"  "-Werror" 
 )
 
 target_include_directories(BobCheckersObjects
@@ -46,7 +46,7 @@ SET_TARGET_PROPERTIES( BobCheckers
     PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED YES
-    COMPILE_OPTIONS "-Wall -Wextra -Wpedantic -Werror -std=c++20"
+    COMPILE_OPTIONS "-O3 -Wall -Wextra -Wpedantic -Werror -std=c++20"
     PUBLIC_HEADER "${BobCheckersHeaders}"
 )
 
