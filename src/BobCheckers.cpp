@@ -21,9 +21,9 @@ int main() {
 
   game.set_debug(false);
 
-  game.play_game_at_depth(16);
+  // game.play_game_at_depth(16);
 
-  // game.join_loop();
+  game.join_loop();
 
   return 0;
 }

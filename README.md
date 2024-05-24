@@ -1,35 +1,37 @@
 # BobCheckers
 
-BobCheckers is a (better than a certain other) checkers engine, designed to beat that certain other checkers engine
+BobCheckers is a (better than a certain other) [checkers](docs/CheckersRules.md) engine, designed to beat that certain other checkers engine. This engine is designed by Max Ismagilov.
+For the official Github repo, visit [go here](https://github.com/MaxIsmagilov/BobCheckers).
 
-# Features
+## Features
 
-## current:
+### Current:
 1. pre-calculated move tables
 2. force-capture validation
 3. multiple-capture forcing
 4. negascout algorithm
 5. make/unmake structure
-6. PCI compliant
+6. PCI compliant: [documentation for more information](docs/PolyCheckersInterface.md)
 7. transposition tables
 8. quiescence search
 9. piece-square table evaluation 
 
-## to be added:
-1. tapered eval?
-2. texel-tuning
+### To be added:
+1. tapered eval (evaluation where the evaluation changes as the game progresses)
+2. texel-tuning (similar to training an AI system, texel-tuning finds the optimal values to get the best result)
+3. multithreading (stretch, I hate multithreading personally)
 
-# System requirements
+## System requirements
 - Requred:
-    - a compiler capable of c++17
+    - a compiler capable of c++20 
     - 4 GB RAM
 - Reccomended:
     - G++/GCC 12
     - 8 GB RAM
 
-# Installation instructions
+## Installation instructions
 
-1. download the release
-2. create a folder in the main folder called `bin`
-3. if makefile is installed along with GCC , run `make all`, otherwise, just use your prefered compiler, linking `BobCheckersBackend.hh` and `BobCheckersAPI.hh` to `BobCheckers.cpp`. if makefile is used, the executable will be found in the `bin` folder
-4. add the executable to a PCI-compliant interface
+1. download the relese
+2. make a folder called `build` inside this one and change to int
+3. run `cmake ../ && make`
+4. the execuatble will be at the path `build/src/BobCheckers_1.0.0`
