@@ -55,7 +55,7 @@ int Evaluator::eval(const Board &bd) {
   }
 
   // return the value
-  return val;
+  return val * (bd.get_side() ? 1 : -1);
 }
 
 } // namespace BobCheckers

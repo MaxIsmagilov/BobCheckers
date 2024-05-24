@@ -11,6 +11,8 @@ class Algorithm {
 public:
   int movecount{0};
 
+  int score{0};
+
   /// @brief arbitrarily large number to use in place of infinity
   static constexpr int infinity = 1000000;
 
@@ -32,7 +34,7 @@ public:
   /// @brief Constructor for Algorithm
   /// @param bd
   /// @param tt
-  Algorithm(Board bd, TranspositionTable &tt);
+  Algorithm(const Board &bd, TranspositionTable &tt);
 
   /// @brief the main search function
   /// @param depth
@@ -46,7 +48,7 @@ private:
   /// @param beta
   /// @return the result of the step of negamax
   /// @note called recursively
-  int negamax(int depth, int alpha, int beta, const int color, const bool cut);
+  int negamax(int depth, int alpha, int beta, const bool cut);
 
   /// @brief waits for the search to quiet down
   /// @param depth
@@ -54,6 +56,8 @@ private:
   /// @param beta
   /// @param color
   /// @return the quiescence value
-  int quiescence(int depth, int alpha, int beta, int color);
+  int quiescence(int depth, int alpha, int beta);
+
+  int guess{0};
 };
 } // namespace BobCheckers

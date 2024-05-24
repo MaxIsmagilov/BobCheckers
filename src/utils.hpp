@@ -114,7 +114,7 @@ u32 push_bit(u32 board, u32 square);
 /// @brief removes a bit from the bitboard
 /// @param board
 /// @param square
-u32 pop_bit(u32 &board, u32 square);
+u32 pop_bit(u32 board, u32 square);
 
 /// @brief prints a bitboard
 /// @param bb
@@ -130,6 +130,11 @@ u32 count_bits(const u32 &bitboard);
 /// @param test
 /// @return the index
 u32 LSB_index(const u32 &test);
+
+/// @brief converts a coordinate to an index
+/// @param coordinate
+/// @return
+u32 coordinates_to_index(const std::string &coordinate);
 
 /// @brief 'a' file bitboard constant
 constexpr u64 A_FILE = 0x0101010101010101ULL;

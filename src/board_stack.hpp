@@ -23,7 +23,7 @@ public:
 
   /// @brief move for the board stack
   /// @param mv
-  void make_move(Move &mv);
+  void make_move(const Move &mv);
 
   /// @brief move for the board stack
   /// @param mv

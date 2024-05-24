@@ -8,7 +8,7 @@ BoardStack::BoardStack(const Board &other) { boards[0] = other; }
 
 Board &BoardStack::get_top() { return boards[top]; }
 
-void BoardStack::make_move(Move &mv) {
+void BoardStack::make_move(const Move &mv) {
   boards[top + 1] = boards[top];
   boards[++top].move(mv);
 }

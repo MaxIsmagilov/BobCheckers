@@ -2,6 +2,8 @@
 
 namespace BobCheckers {
 
+u64 TTUtils::hash_keys[4][32] = {};
+
 void TTUtils::generate_hash_keys() {
   std::default_random_engine generator;
   std::uniform_int_distribution<u64> distribution(0ULL, 0xFFFFFFFFFFFFFFFFULL);
@@ -12,7 +14,7 @@ void TTUtils::generate_hash_keys() {
   }
 }
 
-const u64 TTUtils::get_key(const Board &bd) {
+u64 TTUtils::get_key(const Board &bd) {
   u32 cpy[4] = {bd[0], bd[1], bd[2], bd[3]};
   u64 key = 0ULL;
   for (int i = 0; i < 4; i++) {
@@ -22,7 +24,7 @@ const u64 TTUtils::get_key(const Board &bd) {
       key ^= TTUtils::hash_keys[i][j];
     }
   }
-  return key;
+  return key ^ (bd.get_side() ? 0xFFFFFFFFFFFFFFFFULL : 0ULL);
 }
 
 u64 TranspositionTable::get_index(const u64 key) const { return key % length; }

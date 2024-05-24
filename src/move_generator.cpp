@@ -3,6 +3,8 @@
 #include "evaluation.hpp"
 #include <algorithm>
 
+#include <iostream>
+
 namespace BobCheckers {
 
 void MoveGenerator::init_move_table() {
@@ -294,5 +296,9 @@ std::vector<Move> MoveGenerator::operator()() {
   // return the resultant vector
   return moves;
 }
+
+u32 MoveGenerator::silent_table[3][32] = {};
+
+u32 MoveGenerator::capture_table[3][32] = {};
 
 } // namespace BobCheckers

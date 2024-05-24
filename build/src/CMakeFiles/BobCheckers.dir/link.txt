@@ -1,2 +1,0 @@
-/usr/bin/ar qc libBobCheckers.a CMakeFiles/BobCheckersObjects.dir/utils.cpp.o CMakeFiles/BobCheckersObjects.dir/move.cpp.o CMakeFiles/BobCheckersObjects.dir/board.cpp.o CMakeFiles/BobCheckersObjects.dir/board_stack.cpp.o CMakeFiles/BobCheckersObjects.dir/evaluation.cpp.o CMakeFiles/BobCheckersObjects.dir/move_generator.cpp.o CMakeFiles/BobCheckersObjects.dir/transposition.cpp.o CMakeFiles/BobCheckersObjects.dir/algorithm.cpp.o
-/usr/bin/ranlib libBobCheckers.a

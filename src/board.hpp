@@ -43,19 +43,19 @@ public:
 
   /// @brief flips the side to move
   void flip_side();
-
-  /// @brief executes a move
-  /// @tparam T should be an int type
-  /// @tparam ...params should be an int type
-  /// @param square1 the origin square
-  /// @param square2 the second square
-  /// @param ...other_squares any other squares
-  template <typename T, typename... params>
-  void move(T square1, T square2, params... other_squares);
+  /*
+    /// @brief executes a move
+    /// @tparam T should be an int type
+    /// @tparam ...params should be an int type
+    /// @param square1 the origin square
+    /// @param square2 the second square
+    /// @param ...other_squares any other squares
+    template <typename T, u32... params>
+    void move(u32 square1, u32 square2, params... other_squares);*/
 
   /// @brief executes a move
   /// @param mv
-  void move(Move &mv);
+  void move(const Move &mv);
 
   /// @brief executes a move
   /// @param mv

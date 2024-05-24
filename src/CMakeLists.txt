@@ -5,8 +5,10 @@ set(BobCheckersHeaders
     board.hpp
     board_stack.hpp
     evaluation.hpp
+    move_generator.cpp
     transposition.hpp
     algorithm.hpp
+    api.hpp
 )
 
 # Add your header files here
@@ -19,6 +21,7 @@ set(BobCheckersSources
     move_generator.cpp
     transposition.cpp
     algorithm.cpp
+    api.cpp
 )
 
 ADD_LIBRARY(BobCheckersObjects OBJECT 
@@ -26,7 +29,7 @@ ADD_LIBRARY(BobCheckersObjects OBJECT
 )
 
 TARGET_COMPILE_OPTIONS(
-    BobCheckersObjects PUBLIC "-std=c++20"
+    BobCheckersObjects PUBLIC "-std=c++20" "-Wall" "-Wextra" "-Wpedantic"  "-Werror" "-std=c++20" 
 )
 
 target_include_directories(BobCheckersObjects
@@ -63,5 +66,5 @@ INSTALL(EXPORT BobCheckersTargets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/BobCheckers
 )
 
-ADD_EXECUTABLE(main BobCheckers.cpp)
-TARGET_LINK_LIBRARIES(main BobCheckers::BobCheckers)
+ADD_EXECUTABLE(BobCheckers_${PROJECT_VERSION} BobCheckers.cpp)
+TARGET_LINK_LIBRARIES(BobCheckers_${PROJECT_VERSION} BobCheckers::BobCheckers)

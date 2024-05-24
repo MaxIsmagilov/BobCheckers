@@ -1,9 +1,9 @@
-
-
 #include "algorithm.hpp"
+#include "api.hpp"
 #include "evaluation.hpp"
 #include "move_generator.hpp"
 #include "transposition.hpp"
+#include "utils.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -17,14 +17,13 @@ int main() {
 
   setup();
 
-  BobCheckers::Board bd;
-  BobCheckers::TranspositionTable tt;
+  BobCheckers::Game game;
 
-  bd.load_pos("1b1b1b1b/b1b1b1b1/1b1b1b1b/8/8/w1w1w1w1/1w1w1w1w/w1w1w1w1 w");
+  game.set_debug(false);
 
-  BobCheckers::Algorithm alg(bd, tt);
+  game.play_game_at_depth(16);
 
-  alg.search(6);
+  // game.join_loop();
 
   return 0;
 }

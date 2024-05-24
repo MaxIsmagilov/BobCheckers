@@ -4,7 +4,7 @@
 
 namespace BobCheckers {
 
-Algorithm::Algorithm(Board bd, TranspositionTable &tt)
+Algorithm::Algorithm(const Board &bd, TranspositionTable &tt)
     : table(tt), board_stack(bd) {}
 
 Move Algorithm::search(int depth) {
@@ -18,12 +18,15 @@ Move Algorithm::search(int depth) {
   MoveGenerator mg(bd);
   std::vector<Move> moveslist = mg();
 
-  for (Move mw : moveslist) {
-    board_stack.make_move(mw);
-    int new_value = -negamax(depth - 1, -beta, -alpha, -1, false);
+  // std::cout << "depth: " << depth << std::endl;
 
-    std::cout << "Move: " << mw.print_move() << " Value: " << new_value
-              << std::endl;
+  for (const Move &mw : moveslist) {
+    board_stack.make_move(mw);
+    int new_value = -negamax(depth - 1, -beta, -alpha, false);
+
+    // std::cout << '\t' << "Move: " << mw.print_move() << " Value: " <<
+    // new_value
+    //           << std::endl;
 
     if (new_value > value) {
       value = new_value;
@@ -33,17 +36,12 @@ Move Algorithm::search(int depth) {
     board_stack.unmake_move();
   }
 
+  score = value;
+
   return best_move;
 }
 
-/// @brief the negamax algorithm
-/// @param depth
-/// @param alpha
-/// @param beta
-/// @return the result of the step of negamax
-/// @note called recursively
-int Algorithm::negamax(int depth, int alpha, int beta, const int color,
-                       const bool cut) {
+int Algorithm::negamax(int depth, int alpha, int beta, const bool cut) {
 
   Board &bd = board_stack.get_top();
   MoveGenerator mg(bd);
@@ -57,9 +55,6 @@ int Algorithm::negamax(int depth, int alpha, int beta, const int color,
 
   // increment total nodes
   ++movecount;
-
-  // store the original alpha
-  int original_alpha = alpha;
 
   // find a transpositon table entry
   TTUtils::TT_Entry entry = table.find(TTUtils::get_key(bd));
@@ -77,9 +72,9 @@ int Algorithm::negamax(int depth, int alpha, int beta, const int color,
   // return the value if depth cutoff
   if (depth <= 0) {
     if (mg.captures_available())
-      return -quiescence(quiescence_depth, -beta, -alpha, -color);
+      return quiescence(quiescence_depth, alpha, beta);
     else
-      return Evaluator::eval(bd) * color;
+      return Evaluator::eval(bd);
   }
 
   // if there are no moves, it is game over
@@ -89,25 +84,26 @@ int Algorithm::negamax(int depth, int alpha, int beta, const int color,
   // set an arbitrarily large negative number
   int value = -infinity;
 
+  // store the original alpha
+  int original_alpha = alpha;
+
+  int original_beta = beta;
+
   // negamax through the move list
-  for (Move mw : moveslist) {
-    board_stack.make_move(mw);
-    if (!can_cut)
+  for (u32 i = 0; i < moveslist.size(); ++i) {
+    board_stack.make_move(moveslist[i]);
+
+    value = std::max(value, -negamax(depth - 1, -beta, -alpha, can_cut));
+    if (alpha < value && value < original_beta && i > 0) {
       value =
-          std::max(value, -negamax(depth - 1, -beta, -alpha, -color, can_cut));
-    else {
-      value =
-          std::max(value, -negamax(depth - 1, -beta, -alpha, -color, can_cut));
-      if (alpha < value && value < beta) {
-        value = std::max(value,
-                         -negamax(depth - 1, -beta, -value, -color, can_cut));
-      }
+          std::max(value, -negamax(depth - 1, -original_beta, -value, can_cut));
     }
     alpha = std::max(value, alpha);
     board_stack.unmake_move();
     can_cut = true;
     if (alpha >= beta)
       break;
+    beta = alpha + 1;
   }
 
   // create a new transposition table entry
@@ -115,17 +111,17 @@ int Algorithm::negamax(int depth, int alpha, int beta, const int color,
   newEntry._value = value;
   if (value <= original_alpha)
     newEntry._type = TTUtils::UBOUND;
-  else if (value >= beta)
+  else if (value >= original_beta)
     newEntry._type = TTUtils::LBOUND;
   else
     newEntry._type = TTUtils::EXACT;
   table.add(newEntry);
 
   // return the value
-  return value;
+  return alpha;
 }
 
-int Algorithm::quiescence(int depth, int alpha, int beta, int color) {
+int Algorithm::quiescence(int depth, int alpha, int beta) {
   ++movecount;
 
   Board &bd = board_stack.get_top();
@@ -134,10 +130,7 @@ int Algorithm::quiescence(int depth, int alpha, int beta, int color) {
 
   // return the value if node quiet or if depth = 0
   if (depth == 0 || !mg.captures_available())
-    return Evaluator::eval(bd) * color;
-
-  // store the original alpha
-  int original_alpha = alpha;
+    return Evaluator::eval(bd);
 
   // find a transpositon table entry
   TTUtils::TT_Entry entry = table.find(TTUtils::get_key(bd));
@@ -164,7 +157,7 @@ int Algorithm::quiescence(int depth, int alpha, int beta, int color) {
   // go through the move list
   for (Move mw : moveslist) {
     board_stack.make_move(mw);
-    value = std::max(value, -quiescence(depth - 1, -beta, -alpha, -color));
+    value = std::max(value, -quiescence(depth - 1, -beta, -alpha));
     alpha = std::max(value, alpha);
     board_stack.unmake_move();
     if (alpha >= beta)

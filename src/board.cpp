@@ -27,20 +27,10 @@ u32 Board::get_side() const { return side_to_move; }
 
 void Board::flip_side() { side_to_move ^= 1; }
 
-template <typename T, typename... params>
-void Board::move(T square1, T square2, params... other_squares) {
-  // just executes single moves one by one
-  std::vector<u32> moves{(u32)square1, (u32)square2, other_squares...};
-  for (int i = 0; i < moves.size() - 1; i++) {
-    single_move(moves[i], moves[i + 1]);
-  }
-  flip_side();
-}
-
-void Board::move(Move &mv) {
+void Board::move(const Move &mv) {
   // just executes single moves one by one
   std::vector<u32> moves{std::move(mv.move_vec)};
-  for (int i = 0; i < moves.size() - 1; i++) {
+  for (u32 i = 0; i < moves.size() - 1; i++) {
     single_move(moves[i], moves[i + 1]);
   }
   flip_side();
@@ -49,7 +39,7 @@ void Board::move(Move &mv) {
 void Board::move(Move &&mv) {
   // just executes single moves one by one
   std::vector<u32> moves{std::move(mv.move_vec)};
-  for (int i = 0; i < moves.size() - 1; i++) {
+  for (u32 i = 0; i < moves.size() - 1; i++) {
     single_move(moves[i], moves[i + 1]);
   }
   flip_side();
@@ -89,40 +79,38 @@ void Board::load_pos(std::string position) {
 
 std::string Board::print_board() const {
   // create pieces
-  char pieces[4] = {'o', '0', 'a', '@'};
+  char piece_names[4] = {'w', 'W', 'b', 'B'};
+  char board_repr[8][8] = {};
 
-  // the string of the board
-  std::string board{""};
+  // fill the board representation with empty squares first
+  for (int i = 0; i < 8; i++)
+    for (int j = 0; j < 8; j++)
+      board_repr[i][j] = ' ';
 
-  // go through all squares
-  for (int i = 0; i < 64; i++) {
-    int j = 0;
-    if ((i + ((i / 8) % 2)) % 2)
-      for (j; j < 4; j++) {
-        // find if there is a piece on the square
-        if (bitboards[j] & (1ULL << utils::indexto32(i))) {
-          board += pieces[j];
-          break;
-        }
-      }
-    else
-      board += ' ';
-    // if there is not a piece, add a space
-    if (j == 4)
-      board += ((i / 8 + i) % 2) ? ' ' : ' ';
+  // fill the board representation
+  for (int i = 0; i < 4; i++) {
+    u32 bitboard = bitboards[i];
+    while (bitboard) {
+      int index = utils::LSB_index(bitboard);
+      bitboard = utils::pop_bit(bitboard, index);
+      index = utils::indexto64(index);
+      board_repr[index / 8][index % 8] = piece_names[i];
+    }
+  }
 
-    // add a new line if needed
-    if (i % 8 == 7 && i < 60)
-      board += "\n--|---|---|---|---|---|---|-- \n";
+  // create the board string
+  std::string board = "+---+---+---+---+---+---+---+---+\n";
 
-    // add a vertical bar otherwise
-    else if (i != 63)
-      board += " | ";
+  // add the board
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++)
+      board += "| " + std::string(1, board_repr[i][j]) + " ";
+    board += "|\n+---+---+---+---+---+---+---+---+\n";
   }
 
   // add the side to move
-  board += "\nside to move: ";
-  board += ((side_to_move == 1) ? "white" : "black");
+  board += "side to move: ";
+  board += ((side_to_move == 1) ? "white\n" : "black\n");
 
   return board;
 }

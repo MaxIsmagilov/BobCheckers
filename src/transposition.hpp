@@ -9,7 +9,7 @@ namespace BobCheckers {
 
 namespace TTUtils {
 /// @brief hash keys for table
-u64 hash_keys[4][32];
+extern u64 hash_keys[4][32];
 
 /// @brief initializing method to generate hash keys
 void generate_hash_keys();
@@ -17,7 +17,7 @@ void generate_hash_keys();
 /// @brief calculates the key for a board
 /// @param bd
 /// @return the hash key
-const u64 get_key(const Board &bd);
+u64 get_key(const Board &bd);
 
 /// @brief entry type enum
 enum tt_entry_type : char { EXACT, LBOUND, UBOUND, FAIL };
